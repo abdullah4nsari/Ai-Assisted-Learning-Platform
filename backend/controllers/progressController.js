@@ -1,0 +1,85 @@
+import { set } from "mongoose";
+import Document from "../models/Document.js";
+import Flashcard from "../models/Flashcard.js";
+import Quiz from "../models/Quiz.js";
+
+//@desc Get user learning statistics
+//@route GET api/progress/dashboard
+//@access private
+
+export const getDashboardStats = async (req, res, next) => {
+    try {
+        const userId = req.user._id;
+
+        //Get Counts
+        //get total documents
+        const totalDocuments = await Document.countDocuments({ userId });
+
+        //get total flashcard sets
+        const totalFlashcardSets = await Flashcard.countDocuments({ userId });
+
+        //get total quizzes
+        const totalQuizzes = await Quiz.countDocuments({ userId });
+
+        //get completed quiz count
+        const completedQuiz = await Quiz.countDocuments({ userId, completedAt: { $ne: null } });
+
+
+        //get Flashcard statistics
+        const flashcardSets = await Flashcard.find({ userId });
+        let totalFlashcards = 0;
+        let reviewFlashcards = 0;
+        let starredFlashcards = 0;
+
+        flashcardSets.forEach(set => {
+            totalFlashcards += set.cards.length;
+            reviewFlashcards += set.cards.filter(card => card.reviewCount > 0).length;
+            starredFlashcards += set.cards.filter(card => card.isStarred).length;
+        })
+
+        //get quiz statistics
+        const quizzes = await Quiz.find({ userId, completedAt: { $ne: null } });
+        const averageScore = quizzes.length > 0
+            ? Math.round(quizzes.reduce((sum, q) => sum + q.score, 0) / quizzes.length)
+            : 0;
+
+        //recent activity 
+        const recentDocuments = await Document.find({ userId })
+            .sort({ lastAccessed: -1 })
+            .limit(5)
+            .select('title filename lastAccessed status');
+
+        const recentQuizzes = await Quiz.find({ userId })
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .populate('documentId', 'title')
+            .select('title score totalQuestions completedAt')
+
+        //study streak (simplified - in production, track daily activity)
+        const studyStreak = Math.floor(Math.random() * 7) + 1; //mock data
+
+        res.status(200).json({
+            success: true,
+            data: {
+                overview: {
+                    totalDocuments,
+                    totalFlashcardSets,
+                    totalQuizzes,
+                    completedQuiz,
+                    totalFlashcards,
+                    reviewFlashcards,
+                    starredFlashcards,
+                    averageScore,
+                    studyStreak,
+                },
+                recentActivity: {
+                    documents: recentDocuments,
+                    quizzes: recentQuizzes
+                }
+            }
+        })
+
+    } catch (error) {
+        next(error);
+    }
+}
