@@ -22,7 +22,7 @@ export const register = async (req, res, next) => {
         success: false,
         error:
           userExists.email === email
-            ? "Email already registered"
+            ? "Email already registered, try with different email."
             : "Username already taken",
         statusCode: 400,
       });
@@ -51,7 +51,15 @@ export const register = async (req, res, next) => {
       },
       message: "User registered successfully",
     });
-  } catch (error) {}
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      error: "Server error",
+      statusCode: 500,
+    });
+    next(error);
+  }
 };
 
 //@desc login user
@@ -63,16 +71,17 @@ export const login = async (req, res, next) => {
 
     // validate input
     if (!email || !password) {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: "please provide email and password",
         statusCode: 400,
       });
+      
     }
-
+    console.log(`received a request of email:${email}, password:${password}`);
     //check for password (include password for comparison)
     const user = await User.findOne({ email }).select("+password");
-
+    // console.log(user);
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -83,7 +92,7 @@ export const login = async (req, res, next) => {
 
     //check if password matches
     const isMatch = await user.matchPassword(password);
-
+    // console.log(isMatch);
     if (!isMatch) {
       return res.status(401).json({
         success: false,

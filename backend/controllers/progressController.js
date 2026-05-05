@@ -1,7 +1,45 @@
-import { set } from "mongoose";
 import Document from "../models/Document.js";
 import Flashcard from "../models/Flashcard.js";
 import Quiz from "../models/Quiz.js";
+import User from "../models/User.js";
+
+// returns today's date at midnight UTC for consistent day comparison
+const toMidnightUTC = (date) => {
+    const d = new Date(date);
+    d.setUTCHours(0, 0, 0, 0);
+    return d;
+};
+
+const updateStreak = async (userId) => {
+    const user = await User.findById(userId).select('studyStreak lastActiveDate');
+    const today = toMidnightUTC(new Date());
+    const last = user.lastActiveDate ? toMidnightUTC(user.lastActiveDate) : null;
+
+    let streak = user.studyStreak || 0;
+
+    if (!last) {
+        // first time visiting
+        streak = 1;
+    } else {
+        const diffDays = Math.round((today - last) / (1000 * 60 * 60 * 24));
+        if (diffDays === 0) {
+            // same day — no change
+        } else if (diffDays === 1) {
+            // consecutive day — increment
+            streak += 1;
+        } else {
+            // missed a day — reset
+            streak = 1;
+        }
+    }
+
+    await User.findByIdAndUpdate(userId, {
+        studyStreak: streak,
+        lastActiveDate: new Date()
+    });
+
+    return streak;
+};
 
 //@desc Get user learning statistics
 //@route GET api/progress/dashboard
@@ -55,8 +93,8 @@ export const getDashboardStats = async (req, res, next) => {
             .populate('documentId', 'title')
             .select('title score totalQuestions completedAt')
 
-        //study streak (simplified - in production, track daily activity)
-        const studyStreak = Math.floor(Math.random() * 7) + 1; //mock data
+        //study streak — tracked via lastActiveDate on User
+        const studyStreak = await updateStreak(userId);
 
         res.status(200).json({
             success: true,

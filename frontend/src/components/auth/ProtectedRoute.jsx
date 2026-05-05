@@ -1,18 +1,19 @@
 import React from 'react'
 import {Navigate,Outlet} from 'react-router-dom';
-import AppLayout from '../layout/AppLayout';
+import AppLayout from '../../components/layout/AppLayout';
+import {useAuth} from '../../context/AuthContext';
+import Spinner from '../common/Spinner';
 const ProtectedRoute = () => {
-    const isAuthenticated=true;
-    const loading=false;
+    const {isAuthenticated, loading} = useAuth();
 
     if(loading){
-        return <div>loading... </div>;
+        return <Spinner/>;
     }
   return isAuthenticated ? (
     <AppLayout>
         <Outlet/>
     </AppLayout>
-  ) : ( <Navigate to='/login' replace/>);
+  ) : ( <Navigate to='/login' />);
 }
 
 export default ProtectedRoute;

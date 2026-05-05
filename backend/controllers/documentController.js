@@ -1,215 +1,263 @@
-import Document from "../models/Document.js";
-import Flashcard from "../models/Flashcard.js";
-import Quiz from "../models/Quiz.js";
-import {extractTextFromPdf} from '../utils/pdfParser.js';
-import {chunkText} from '../utils/textChunker.js';
+import Document from '../models/Document.js';
+import Flashcard from '../models/Flashcard.js';
+import Quiz from '../models/Quiz.js';
+import { extractTextFromPdf } from '../utils/pdfParser.js';
+import { chunkText } from '../utils/textChunker.js';
+import { cloudinary } from '../config/multer.js';
+import axios from 'axios';
+import path from 'path';
 import fs from 'fs/promises';
 import mongoose from 'mongoose';
+import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 
+// import { deleteFromCloudinary } from "../utils/deleteFromCloudinary.js";
 
 //@desc upload pdf document
 //@route POST /api/documents/upload
 //@access private
-export const uploadDocument = async (req , res, next)=>{
-    try {
-        if(!req.file){
-            return res.status(400).json({
-                success:false,
-                error:'Please upload a pdf file',
-                statusCode:400
-            })
-        }
-        
-        const {title}=req.body;
-        if(!title){
-            //delete uploaded file if not title provided
-            await fs.unlink(req.file.path);
-            return res.status(400).json({
-                success:false,
-                error:'Please provide a document title',
-                statusCode:400
-            })
-        }
-        
-        //construct the url for the uploaded file
-        const baseUrl = `http://localhost:${process.env.PORT || 8000}`;
-        const fileUrl = `${baseUrl}/uploads/documents/${req.file.filename}`;
+export const uploadDocument = async (req, res, next) => {
+  try {
+    console.log("🚀 uploadDocument API HIT");
 
-        //create document record 
-        const document = await Document.create({
-            userId: req.user._id,
-            title,
-            filename: req.file.originalname,
-            filepath: fileUrl, //store the url instead of the local path
-            filesize: req.file.size,
-            status: 'processing'
-        });
-        console.log('i am here');
-        //process pdf in background (in production, use a queue like bull)
-        processPDF(document._id, req.file.path).catch(err=>{
-            console.error('PDF processing error:', err);
-        });
-
-        res.status(201).json({
-            success:true,
-            data: document,
-            message: 'Document uploaded successfully. Processing in progress...'
-        })
-    } catch (error) {
-        //clean up file on error
-        if(req.file){
-            await fs.unlink(req.file.path).catch(()=>{})
-        }
-        next(error);
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: "Please upload a file",
+        statusCode: 400,
+      });
     }
-}
 
-//helper function to process PDF
-const processPDF = async (documentId, filePath)=>{
+    const { title } = req.body;
+
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        error: "Please provide a document title",
+        statusCode: 400,
+      });
+    }
+
+    console.log("FILE DEBUG:", req.file);
+
+    // ✅ Upload to Cloudinary manually
+    const result = await uploadToCloudinary(req.file);
+
+    const document = await Document.create({
+      userId: req.user._id,
+      title,
+      filename: req.file.originalname,
+      filepath: result.secure_url,
+      public_id: result.public_id,
+      resource_type: result.resource_type,
+      filesize: result.bytes,
+      status: "processing",
+    });
+
+    // ✅ Only process if it's a PDF — pass buffer directly, no re-download needed
+    if (req.file.mimetype === "application/pdf") {
+      processPDF(document._id, req.file.buffer).catch((err) => {
+        console.error("PDF processing error:", err);
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      data: document,
+      message: "File uploaded successfully. Processing in progress...",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// helper — parses PDF from buffer and updates document
+const processPDF = async (documentId, buffer) => {
     try {
-        const {text} = await extractTextFromPdf(filePath);
+        const { text } = await extractTextFromPdf(buffer);
+        const chunks = chunkText(text);
 
-        //create chunks
-        const chunks= chunkText(text);
-
-        //update document
-        await Document.findByIdAndUpdate(documentId,{
+        await Document.findByIdAndUpdate(documentId, {
             extractedText: text,
-            chunks: chunks,
+            chunks,
             status: 'ready'
         });
 
         console.log(`Document ${documentId} processed successfully`);
-
     } catch (error) {
-        console.error(`Error processing document ${documentId}:`,error);
-        await Document.findByIdAndUpdate(documentId, {status: 'failed'});
+        console.error(`Error processing document ${documentId}:`, error);
+        await Document.findByIdAndUpdate(documentId, { status: 'failed' });
     }
-}
+};
 
 
-
-//@desc get all user document
+//@desc get all user documents
 //@route GET /api/documents/
 //@access private
-export const getDocuments = async (req , res, next)=>{
+export const getDocuments = async (req, res, next) => {
     try {
         const Documents = await Document.aggregate([
+            { $match: { userId: new mongoose.Types.ObjectId(req.user._id) } },
             {
-                $match:{userId:new mongoose.Types.ObjectId(req.user._id)}
-            },
-            {
-                $lookup:{
-                    from : 'flashcards',
-                    localField:'_id',
-                    foreignField:'documentId',
-                    as:'flashcardSets'
+                $lookup: {
+                    from: 'flashcards',
+                    localField: '_id',
+                    foreignField: 'documentId',
+                    as: 'flashcardSets'
                 }
             },
             {
-                $lookup:{
-                    from : 'quizzes',
-                    localField:'_id',
-                    foreignField:'documentId',
-                    as:'quizzes'
+                $lookup: {
+                    from: 'quizzes',
+                    localField: '_id',
+                    foreignField: 'documentId',
+                    as: 'quizzes'
                 }
             },
             {
-                $addFields:{
-                    flashcardCount:{$size:'$flashcardSets'},
-                    quizCount:{$size:'$quizzes'}
+                $addFields: {
+                    flashcardCount: { $size: '$flashcardSets' },
+                    quizCount: { $size: '$quizzes' }
                 }
             },
             {
-                $project:{
-                    extractedText:0,
-                    chunks:0,
-                    flashcardSets:0,
-                    quizzes:0
+                $project: {
+                    extractedText: 0,
+                    chunks: 0,
+                    flashcardSets: 0,
+                    quizzes: 0
                 }
             },
-            {
-                $sort:{uploadDate:-1}
-            }
+            { $sort: { uploadDate: -1 } }
         ]);
+
         res.status(200).json({
-            success:true,
-            count:Documents.length,
-            data:Documents
+            success: true,
+            count: Documents.length,
+            data: Documents
         });
     } catch (error) {
         next(error);
     }
-}
-//@desc get a single with chunks
+};
+
+
+//@desc proxy-stream PDF from Cloudinary so browser renders inline
+//@route GET /api/documents/:id/preview-url
+//@access private
+export const getPreviewUrl = async (req, res, next) => {
+    try {
+        const document = await Document.findOne({
+            _id: req.params.id,
+            userId: req.user._id
+        });
+
+        if (!document) {
+            return res.status(404).json({ success: false, error: 'Document not found' });
+        }
+
+        const filepath = document.filepath;
+
+        // Local file (old uploads before Cloudinary)
+        if (filepath.startsWith('http://localhost') || filepath.startsWith('http://127.0.0.1')) {
+            const localPath = filepath.replace(/^https?:\/\/[^/]+/, '');
+            const absolutePath = path.join(process.cwd(), localPath);
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `inline; filename="${document.filename}"`);
+            return res.sendFile(absolutePath);
+        }
+
+        // Cloudinary or remote URL — proxy stream
+        const response = await axios.get(filepath, { responseType: 'stream' });
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${document.filename}"`);
+        response.data.pipe(res);
+    } catch (error) {
+        next(error);
+    }
+};
+
+//@desc get a single document with chunks
 //@route GET /api/documents/:id
 //@access private
-export const getDocument = async (req , res, next)=>{
+export const getDocument = async (req, res, next) => {
     try {
-        const document=await Document.findOne({
-            _id:req.params.id,
-            userId:req.user._id
-        })
-        if(!document){
-            return res.status(404).json({
-                success:false,
-                error:'Document not found',
-                statusCode:404
-            })
-        }   
-        // get count of associated flashcards and quizes
-        const flashcardCount=await Flashcard.countDocuments({documentId:document._id,userId:req.user._id});
-        const quizCount=await Quiz.countDocuments({documentId:document._id, userId:req.user._id});
+        const document = await Document.findOne({
+            _id: req.params.id,
+            userId: req.user._id
+        });
 
-        //update last accessed
+        if (!document) {
+            return res.status(404).json({
+                success: false,
+                error: 'Document not found',
+                statusCode: 404
+            });
+        }
+
+        const flashcardCount = await Flashcard.countDocuments({ documentId: document._id, userId: req.user._id });
+        const quizCount = await Quiz.countDocuments({ documentId: document._id, userId: req.user._id });
+
         document.lastAccessed = Date.now();
         await document.save();
 
-        //combine document data with counts
-        const documentData = {
-            ...document.toObject(),
-            flashcardCount,
-            quizCount
-        };
-
         res.status(200).json({
-            success:true,
-            data:documentData
+            success: true,
+            data: { ...document.toObject(), flashcardCount, quizCount }
         });
     } catch (error) {
         next(error);
     }
-}
+};
+
+
 //@desc delete a document
 //@route DELETE /api/documents/:id
 //@access private
-export const deleteDocument = async (req , res, next)=>{
+export const deleteDocument = async (req, res, next) => {
     try {
-        const document=await Document.findOneAndDelete({
-            _id:req.params.id,
-            userId:req.user._id
+        const document = await Document.findOneAndDelete({
+            _id: req.params.id,
+            userId: req.user._id
         });
 
-        if(!document){
+        if (!document) {
             return res.status(404).json({
-                success:false,
-                error:'Document not found',
-                statusCode:404
-            })
+                success: false,
+                error: 'Document not found',
+                statusCode: 404
+            });
         }
 
-        //delete file from filesystem
-        await fs.unlink(document.filepath).catch(()=>{});
+        // Delete from Cloudinary if public_id exists
+        if (document.public_id) {
+            try {
+                const result = await cloudinary.uploader.destroy(document.public_id, {
+                    resource_type: document.resource_type || 'raw'
+                });
+                console.log(`Cloudinary delete result for ${document.public_id}:`, result);
+            } catch (e) {
+                console.error('Cloudinary delete error:', e.message);
+            }
+        }
 
-        //delete document
-        await document.deleteOne();
+        // Delete local file if filepath points to localhost
+        if (document.filepath?.startsWith('http://localhost') || document.filepath?.startsWith('http://127.0.0.1')) {
+            try {
+                const localPath = document.filepath.replace(/^https?:\/\/[^/]+/, '');
+                const absolutePath = path.join(process.cwd(), localPath);
+                await fs.unlink(absolutePath);
+                console.log(`Local file deleted: ${absolutePath}`);
+            } catch (e) {
+                console.error('Local file delete error:', e.message);
+            }
+        }
 
         res.status(200).json({
-            success:true,
-            message:'Document deleted successfully'
+            success: true,
+            message: 'Document deleted successfully'
         });
     } catch (error) {
         next(error);
     }
-}
-
+};

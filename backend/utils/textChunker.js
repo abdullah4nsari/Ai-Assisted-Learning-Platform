@@ -6,8 +6,6 @@
  * @returns {Array<{content: string, chunkIndex: number, pageNumber:number}>}
  */
 
-import { matchedData } from "express-validator";
-
 export const chunkText = (text, chunkSize=500, overlap=50)=>{
     if(!text || text.trim().length === 0){
         return [];
@@ -182,7 +180,7 @@ export const findRelevantChunks = (chunks,query, maxChunks=3)=>{
         };
     });
 
-    return scoredChunks
+    const filtered = scoredChunks
         .filter(chunk => chunk.score > 0)
         .sort((a,b)=>{
             if(b.score !== a.score){
@@ -194,4 +192,16 @@ export const findRelevantChunks = (chunks,query, maxChunks=3)=>{
             return a.chunkIndex - b.chunkIndex;
         })
         .slice(0,maxChunks);
+
+    // fallback: if no chunks matched, return the first maxChunks chunks
+    if(filtered.length === 0){
+        return chunks.slice(0,maxChunks).map(chunk=>({
+            content: chunk.content,
+            chunkIndex: chunk.chunkIndex,
+            pageNumber: chunk.pageNumber,
+            _id: chunk._id
+        }));
+    }
+
+    return filtered;
 };

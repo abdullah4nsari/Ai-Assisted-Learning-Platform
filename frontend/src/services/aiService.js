@@ -42,7 +42,7 @@ const generateSummary = async (documentId) => {
 const chat = async (message, documentId) => {
     try {
         const response = await axiosInstance.post(API_PATHS.AI.CHAT, {
-            message,
+            question: message,
             documentId
         });
         return response.data;

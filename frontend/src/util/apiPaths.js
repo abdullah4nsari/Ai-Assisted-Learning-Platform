@@ -1,6 +1,5 @@
-import Flashcard from "../../../backend/models/Flashcard";
 
-export const BASE_URL = 'http://localhost:5000';
+export const BASE_URL = 'http://localhost:8000';
 
 export const API_PATHS = {
     AUTH: {
@@ -12,8 +11,9 @@ export const API_PATHS = {
     },
     DOCUMENTS: {
         UPLOAD_DOCUMENT: '/api/documents/upload',
-        GET_DOCUMENTS: '/api/documents/user-documents',
+        GET_DOCUMENTS: '/api/documents',
         GET_DOCUMENT_BY_ID: (id) => `/api/documents/${id}`,
+        GET_PREVIEW_URL: (id) => `/api/documents/${id}/preview-url`,
         UPDATE_DOCUMENT : (id) => `/api/documents/${id}`,
         DELETE_DOCUMENT: (id) => `/api/documents/${id}`
     },

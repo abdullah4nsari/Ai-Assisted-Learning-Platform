@@ -1,11 +1,10 @@
-import React from 'react'
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const FlashcardPage = () => {
-  return (
-    <div>
-      flashcardpage
-    </div>
-  )
-}
+  const navigate = useNavigate();
+  useEffect(() => { navigate('/flashcards', { replace: true }); }, [navigate]);
+  return null;
+};
 
-export default FlashcardPage
+export default FlashcardPage;
