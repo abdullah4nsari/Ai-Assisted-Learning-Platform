@@ -202,7 +202,7 @@ const DashboardPage = () => {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <p className="text-emerald-100 text-sm font-medium">Welcome back,</p>
-            <h1 className="text-2xl font-bold mt-0.5 capitalize">{user?.username || 'Learner'} 👋</h1>
+            <h1 className="text-2xl font-bold mt-0.5">{user?.displayName || user?.username || 'Learner'} 👋</h1>
             <p className="text-emerald-100 text-sm mt-1">
               You have <span className="text-white font-semibold">{overview.totalDocuments}</span> documents and <span className="text-white font-semibold">{overview.totalFlashcardSets}</span> flashcard sets ready to study.
             </p>

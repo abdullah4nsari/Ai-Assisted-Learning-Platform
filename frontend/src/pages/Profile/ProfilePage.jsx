@@ -93,14 +93,25 @@ const PasswordInput = ({ label, id, value, onChange, placeholder, error }) => {
   );
 };
 
-// ── Avatar initials ───────────────────────────────────────────────────────────
-const Avatar = ({ name }) => {
+// ── Avatar ────────────────────────────────────────────────────────────────────
+const Avatar = ({ name, profileImage }) => {
   const initials = (name || 'U')
     .split(' ')
     .map(w => w[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
+
+  if (profileImage) {
+    return (
+      <img
+        src={profileImage}
+        alt={name}
+        className="w-20 h-20 rounded-2xl object-cover shadow-lg shadow-emerald-500/25 flex-shrink-0"
+      />
+    );
+  }
+
   return (
     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/25 flex-shrink-0">
       <span className="text-2xl font-bold text-white">{initials}</span>
@@ -222,10 +233,10 @@ const ProfilePage = () => {
 
       {/* Identity hero strip */}
       <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-5 flex items-center gap-4 shadow-lg shadow-emerald-500/20 animate-fadeInLeft">
-        <Avatar name={user?.username} />
+        <Avatar name={user?.displayName || user?.username} profileImage={user?.profileImage} />
         <div className="min-w-0">
           <p className="text-white/80 text-xs font-medium">Signed in as</p>
-          <h2 className="text-white text-lg font-bold truncate capitalize">{user?.username || '—'}</h2>
+          <h2 className="text-white text-lg font-bold truncate">{user?.displayName || user?.username || '—'}</h2>
           <p className="text-emerald-100 text-sm truncate">{user?.email || '—'}</p>
           {memberSince && (
             <p className="text-emerald-200 text-xs mt-0.5">Member since {memberSince}</p>

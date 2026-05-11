@@ -61,9 +61,19 @@ const changePassword = async (currentPassword, newPassword) => {
     }
 }
 
+const googleAuth = async (access_token) => {
+    try {
+        const response = await axiosInstance.post(API_PATHS.AUTH.GOOGLE_AUTH, { access_token });
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error.message;
+    }
+};
+
 const authService = {
     login,
     register,
+    googleAuth,
     getProfile,
     updateProfile,
     changePassword
