@@ -41,7 +41,6 @@ const LoginPage = () => {
     setError('');
 
     try {
-      // console.log('Login Response:', email,password);
       const response = await authService.login(email, password);
       const user = response.data.user;
       const token = response.data.token;
@@ -53,8 +52,14 @@ const LoginPage = () => {
       toast.success('Login successful!');
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to Login, Please check your credentials!');
-      toast.error(err.response?.data?.message || 'Login failed');
+      // If backend says email not verified, show specific message + resend link
+      if (err?.needsVerification) {
+        setError('Please verify your email before logging in.');
+        toast.error('Email not verified. Check your inbox or resend the link.');
+      } else {
+        setError(err?.error || 'Failed to login. Please check your credentials.');
+        toast.error(err?.error || 'Login failed');
+      }
     } finally{
       setLoading(false);
     }
@@ -121,6 +126,13 @@ const LoginPage = () => {
             {error && (
               <div className='rounded-lg bg-red-50 border border-red-200 p-3'>
                 <p className='text-xs text-red-600 font-medium text-center'>{error}</p>
+                {error.includes('verify') && (
+                  <p className='text-xs text-center mt-1.5'>
+                    <a href='/resend-verification' className='font-semibold text-emerald-600 hover:text-emerald-700 underline'>
+                      Resend verification email
+                    </a>
+                  </p>
+                )}
               </div>
             )}
 

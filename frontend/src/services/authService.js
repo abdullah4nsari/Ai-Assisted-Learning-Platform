@@ -70,10 +70,30 @@ const googleAuth = async (access_token) => {
     }
 };
 
+const verifyEmail = async (token) => {
+    try {
+        const response = await axiosInstance.get(API_PATHS.AUTH.VERIFY_EMAIL(token));
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error.message;
+    }
+};
+
+const resendVerification = async (email) => {
+    try {
+        const response = await axiosInstance.post(API_PATHS.AUTH.RESEND_VERIFICATION, { email });
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error.message;
+    }
+};
+
 const authService = {
     login,
     register,
     googleAuth,
+    verifyEmail,
+    resendVerification,
     getProfile,
     updateProfile,
     changePassword

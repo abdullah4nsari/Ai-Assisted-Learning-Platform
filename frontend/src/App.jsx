@@ -1,6 +1,8 @@
 import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
 import LoginPage from './pages/Auth/LoginPage';
 import RegisterPage from './pages/Auth/RegisterPage';
+import VerifyEmailPage from './pages/Auth/VerifyEmailPage';
+import ResendVerificationPage from './pages/Auth/ResendVerificationPage';
 import NotFoundPage from './pages/Quizzes/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import DashboardPage from './pages/Dashboard/DashboardPage';
@@ -33,6 +35,8 @@ function App() {
         />
         <Route path='/login' element={<LoginPage/>}/>
         <Route path='/register' element={<RegisterPage/>}/>
+        <Route path='/verify-email/:token' element={<VerifyEmailPage/>}/>
+        <Route path='/resend-verification' element={<ResendVerificationPage/>}/>
 
          {/* protected Routes */}
          <Route element={<ProtectedRoute/>}>

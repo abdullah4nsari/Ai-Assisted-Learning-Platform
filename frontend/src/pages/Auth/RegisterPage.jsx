@@ -15,6 +15,7 @@ const RegisterPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+  const [registered, setRegistered] = useState(false); // show check-email state
 
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -51,15 +52,8 @@ const RegisterPage = () => {
 
   try {
     const response = await authService.register(username, email, password);
-    const user = response.data.user;
-    const token = response.data.token;
-
-    if (!user || !token) {
-      throw new Error('Invalid response from server');
-    }
-
-    toast.success('Account created successfully! Please Login');
-    navigate('/login', { replace: true });
+    toast.success('Account created! Check your email to verify.');
+    setRegistered(true);
 
   } catch (error) {
     const errorMessage =
@@ -77,6 +71,30 @@ const RegisterPage = () => {
           <div className='absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[16px_16px] opacity-30'/>
           <div className='relative w-full max-w-md px-6'>
             <div className='bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-xl shadow-slate-200/50 p-10'>
+            {/* ── Check-email state after successful registration ── */}
+            {registered ? (
+              <div className='text-center'>
+                <div className='inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br from-emerald-400 to-teal-500 shadow-lg shadow-emerald-500/25 mb-6'>
+                  <BrainCircuit strokeWidth={2} />
+                </div>
+                <div className='w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4'>
+                  <Mail className='text-emerald-500' size={32} strokeWidth={2} />
+                </div>
+                <h2 className='text-xl font-bold text-slate-900 mb-2'>Check your email!</h2>
+                <p className='text-sm text-slate-500 mb-1'>
+                  We sent a verification link to
+                </p>
+                <p className='text-sm font-semibold text-slate-800 mb-6'>{email}</p>
+                <p className='text-xs text-slate-400 mb-6'>The link expires in 24 hours. Check your spam folder if you don't see it.</p>
+                <Link
+                  to='/resend-verification'
+                  className='text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors duration-200'
+                >
+                  Didn't receive it? Resend
+                </Link>
+              </div>
+            ) : (
+            <>
             {/* header  */}
               <div className='text-center mb-10'>
                 <div className='inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br from-emerald-400 to-teal-500 shadow-lg shadow-emerald-500/25 mb-6'>
@@ -195,6 +213,8 @@ const RegisterPage = () => {
                   <Link to="/login" className='font-semibold text-emerald-600 hover:text-emerald-700 transition-color duration-200'>Sign In</Link>
                 </p>
               </div>
+            </>
+            )} {/* end registered conditional */}
             </div>
     
             {/* subtle footer text  */}

@@ -6,6 +6,8 @@ export const API_PATHS = {
         REGISTER: '/api/auth/register',
         LOGIN: '/api/auth/login',
         GOOGLE_AUTH: '/api/auth/google',
+        VERIFY_EMAIL: (token) => `/api/auth/verify-email/${token}`,
+        RESEND_VERIFICATION: '/api/auth/resend-verification',
         GET_PROFILE: '/api/auth/profile',
         UPDATE_PROFILE: '/api/auth/profile',
         CHANGE_PASSWORD: '/api/auth/change-password'
