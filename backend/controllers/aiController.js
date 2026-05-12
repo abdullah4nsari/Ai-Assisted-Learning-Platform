@@ -5,7 +5,6 @@ import Flashcard from "../models/Flashcard.js";
 import * as geminiService from '../utils/geminiService.js';
 import { findRelevantChunks } from "../utils/textChunker.js";
 import { parse } from "dotenv";
-import { ExplainableCursor } from "mongodb";
 
 //@desc generate flashcard from documents
 //@route POST /api/ai/generate-flashcards
