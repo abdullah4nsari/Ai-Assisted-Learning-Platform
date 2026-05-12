@@ -1,11 +1,17 @@
-import jwt from 'jsonwebtoken';
+import jwt            from 'jsonwebtoken';
+import crypto          from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
-import User from '../models/User.js';
+import User            from '../models/User.js';
+import { sendVerificationEmail } from '../utils/emailService.js';
 
 const client = new OAuth2Client(process.env.CLIENT_ID_OAUTH);
 
+// ── helpers ───────────────────────────────────────────────────────────────────
 const generateToken = (id) =>
     jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
+
+/** Secure random hex token for email verification */
+const generateVerificationToken = () => crypto.randomBytes(32).toString('hex');
 
 const userPayload = (user) => ({
     _id:          user._id,
@@ -13,10 +19,12 @@ const userPayload = (user) => ({
     displayName:  user.displayName || user.username,
     email:        user.email,
     profileImage: user.profileImage,
+    isVerified:   user.isVerified,
     createdAt:    user.createdAt,
 });
 
-//@desc Register new user
+// ── Register ──────────────────────────────────────────────────────────────────
+//@desc  Register new user + send verification email
 //@route POST /api/auth/register
 //@access public
 export const register = async (req, res, next) => {
@@ -34,20 +42,37 @@ export const register = async (req, res, next) => {
             });
         }
 
-        const user  = await User.create({ username, email, password });
-        const token = generateToken(user._id);
+        // Generate verification token (expires in 24 hours)
+        const verificationToken       = generateVerificationToken();
+        const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        const user = await User.create({
+            username,
+            email,
+            password,
+            isVerified:              false,
+            verificationToken,
+            verificationTokenExpiry,
+        });
+
+        // Send verification email (non-blocking — don't fail registration if email fails)
+        try {
+            await sendVerificationEmail(email, username, verificationToken);
+        } catch (emailErr) {
+            console.error('Verification email failed to send:', emailErr.message);
+        }
 
         res.status(201).json({
             success: true,
-            data:    { user: userPayload(user), token },
-            message: 'User registered successfully',
+            message: 'Account created! Please check your email to verify your account.',
         });
     } catch (error) {
         next(error);
     }
 };
 
-//@desc Login user
+// ── Login ─────────────────────────────────────────────────────────────────────
+//@desc  Login — blocks unverified email/password users
 //@route POST /api/auth/login
 //@access public
 export const login = async (req, res, next) => {
@@ -80,6 +105,17 @@ export const login = async (req, res, next) => {
             });
         }
 
+        // Block login if email not verified
+        if (!user.isVerified) {
+            return res.status(403).json({
+                success:        false,
+                error:          'Please verify your email first.',
+                needsVerification: true,
+                email:          user.email,
+                statusCode:     403,
+            });
+        }
+
         const token = generateToken(user._id);
         res.status(200).json({
             success: true,
@@ -91,7 +127,89 @@ export const login = async (req, res, next) => {
     }
 };
 
-//@desc Google OAuth — verify credential (ID token) or access_token, find or create user, return JWT
+// ── Verify Email ──────────────────────────────────────────────────────────────
+//@desc  Verify email using token from link
+//@route GET /api/auth/verify-email/:token
+//@access public
+export const verifyEmail = async (req, res, next) => {
+    try {
+        const { token } = req.params;
+
+        // First check: is there a user already verified with no token?
+        // This handles the StrictMode double-call edge case gracefully
+        const user = await User.findOne({
+            verificationToken:       token,
+            verificationTokenExpiry: { $gt: new Date() },
+        }).select('+verificationToken +verificationTokenExpiry');
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                error:   'Verification link is invalid or has expired.',
+                statusCode: 400,
+            });
+        }
+
+        // Mark as verified and clear token fields
+        user.isVerified              = true;
+        user.verificationToken       = undefined;
+        user.verificationTokenExpiry = undefined;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Email verified successfully! You can now log in.',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ── Resend Verification Email ─────────────────────────────────────────────────
+//@desc  Resend verification email — generates a fresh token
+//@route POST /api/auth/resend-verification
+//@access public
+export const resendVerification = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                error:   'Please provide your email address.',
+                statusCode: 400,
+            });
+        }
+
+        const user = await User.findOne({ email })
+            .select('+verificationToken +verificationTokenExpiry');
+
+        // Always return success to prevent email enumeration
+        if (!user || user.isVerified) {
+            return res.status(200).json({
+                success: true,
+                message: 'If that email exists and is unverified, a new link has been sent.',
+            });
+        }
+
+        // Generate fresh token (invalidates old one)
+        user.verificationToken       = generateVerificationToken();
+        user.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await user.save();
+
+        await sendVerificationEmail(email, user.username, user.verificationToken);
+
+        res.status(200).json({
+            success: true,
+            message: 'Verification email resent. Please check your inbox.',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ── Google OAuth ──────────────────────────────────────────────────────────────
+//@desc  Google OAuth — Google users are auto-verified
 //@route POST /api/auth/google
 //@access public
 export const googleAuth = async (req, res, next) => {
@@ -109,7 +227,6 @@ export const googleAuth = async (req, res, next) => {
         let googleId, email, name, picture;
 
         if (credential) {
-            // ID token flow (GoogleLogin button)
             const ticket  = await client.verifyIdToken({
                 idToken:  credential,
                 audience: process.env.CLIENT_ID_OAUTH,
@@ -117,7 +234,6 @@ export const googleAuth = async (req, res, next) => {
             const payload = ticket.getPayload();
             ({ sub: googleId, email, name, picture } = payload);
         } else {
-            // Access token flow (useGoogleLogin hook)
             const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                 headers: { Authorization: `Bearer ${access_token}` },
             });
@@ -129,23 +245,18 @@ export const googleAuth = async (req, res, next) => {
             picture  = info.picture;
         }
 
-        // Find existing user by googleId or email
         let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
         if (user) {
-            // Link googleId if they previously registered with email/password
             if (!user.googleId) {
                 user.googleId     = googleId;
                 user.profileImage = user.profileImage || picture || null;
+                user.isVerified   = true; // link existing account → auto-verify
                 await user.save();
             }
         } else {
-            // Create new user — username is space-free for DB uniqueness
-            // displayName keeps the full name with spaces for display
             const baseUsername = (name || email.split('@')[0])
-                .replace(/\s+/g, '')   // strip spaces for username only
-                .toLowerCase()
-                .slice(0, 20);
+                .replace(/\s+/g, '').toLowerCase().slice(0, 20);
 
             let username  = baseUsername;
             let collision = await User.findOne({ username });
@@ -156,15 +267,15 @@ export const googleAuth = async (req, res, next) => {
 
             user = await User.create({
                 username,
-                displayName:  name || null,   // "Abdullah Ansari" — spaces preserved
+                displayName:  name || null,
                 email,
                 googleId,
                 profileImage: picture || null,
+                isVerified:   true, // Google accounts are pre-verified
             });
         }
 
         const token = generateToken(user._id);
-
         res.status(200).json({
             success: true,
             data:    { user: userPayload(user), token },
@@ -172,19 +283,13 @@ export const googleAuth = async (req, res, next) => {
         });
     } catch (error) {
         console.error('Google auth error:', error.message);
-        // surface a more specific error in development
-        const msg = process.env.NODE_ENV === 'development'
-            ? error.message
-            : 'Google authentication failed';
-        res.status(401).json({
-            success: false,
-            error: msg,
-            statusCode: 401,
-        });
+        const msg = process.env.NODE_ENV === 'development' ? error.message : 'Google authentication failed';
+        res.status(401).json({ success: false, error: msg, statusCode: 401 });
     }
 };
 
-//@desc Get user profile
+// ── Get Profile ───────────────────────────────────────────────────────────────
+//@desc  Get user profile
 //@route GET /api/auth/profile
 //@access private
 export const getProfile = async (req, res, next) => {
@@ -198,6 +303,7 @@ export const getProfile = async (req, res, next) => {
                 displayName:  user.displayName || user.username,
                 email:        user.email,
                 profileImage: user.profileImage,
+                isVerified:   user.isVerified,
                 createdAt:    user.createdAt,
                 updatedAt:    user.updatedAt,
             },
@@ -207,7 +313,8 @@ export const getProfile = async (req, res, next) => {
     }
 };
 
-//@desc Update user profile
+// ── Update Profile ────────────────────────────────────────────────────────────
+//@desc  Update user profile
 //@route PUT /api/auth/profile
 //@access private
 export const updateProfile = async (req, res, next) => {
@@ -236,7 +343,8 @@ export const updateProfile = async (req, res, next) => {
     }
 };
 
-//@desc Change password
+// ── Change Password ───────────────────────────────────────────────────────────
+//@desc  Change password
 //@route POST /api/auth/change-password
 //@access private
 export const changePassword = async (req, res, next) => {

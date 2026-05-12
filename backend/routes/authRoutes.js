@@ -4,6 +4,8 @@ import {
     register,
     login,
     googleAuth,
+    verifyEmail,
+    resendVerification,
     getProfile,
     updateProfile,
     changePassword,
@@ -24,14 +26,16 @@ const loginValidation = [
     body('password').notEmpty().withMessage('Password is required'),
 ];
 
-// public routes
-router.post('/register', registerValidation, register);
-router.post('/login', loginValidation, login);
-router.post('/google', googleAuth);
+// ── public routes ─────────────────────────────────────────────────────────────
+router.post('/register',              registerValidation, register);
+router.post('/login',                 loginValidation,    login);
+router.post('/google',                                    googleAuth);
+router.get( '/verify-email/:token',                       verifyEmail);
+router.post('/resend-verification',                       resendVerification);
 
-// protected routes
-router.get('/profile', protect, getProfile);
-router.put('/profile', protect, updateProfile);
+// ── protected routes ──────────────────────────────────────────────────────────
+router.get( '/profile',         protect, getProfile);
+router.put( '/profile',         protect, updateProfile);
 router.post('/change-password', protect, changePassword);
 
 export default router;

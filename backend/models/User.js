@@ -28,11 +28,23 @@ const userSchema = new mongoose.Schema({
     },
     displayName: {
         type: String,
-        default: null   // stores full name with spaces e.g. "Abdullah Ansari"
+        default: null
     },
     profileImage: {
         type: String,
         default: null
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    verificationToken: {
+        type: String,
+        select: false
+    },
+    verificationTokenExpiry: {
+        type: Date,
+        select: false
     },
     studyStreak: {
         type: Number,
