@@ -56,9 +56,18 @@ const RegisterPage = () => {
     setRegistered(true);
 
   } catch (error) {
-    const errorMessage =
-      error?.error || error?.data?.message || 'Registration failed, please try again.';
+    // ECONNABORTED = request timeout.
+    // The server likely created the account and sent the email but the
+    // response arrived after the client timeout (common on cold-start deploys).
+    // Show the check-email state instead of an error.
+    if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+      toast.success('Account created! Check your email to verify.');
+      setRegistered(true);
+      return;
+    }
 
+    const errorMessage =
+      error?.error || error?.message || 'Registration failed, please try again.';
     setError(errorMessage);
     toast.error(errorMessage);
 

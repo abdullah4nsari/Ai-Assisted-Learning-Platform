@@ -1,45 +1,48 @@
 import axios from 'axios';
-import {BASE_URL} from './apiPaths.js';
+import { BASE_URL } from './apiPaths.js';
 
 const axiosInstance = axios.create({
     baseURL: BASE_URL,
-    timeout: 10000,
+    timeout: 30000, // 30s default — covers Render cold starts
     headers: {
         'Content-Type': 'application/json',
-        Accept: 'application/json'
-    }
-})
+        Accept: 'application/json',
+    },
+});
 
-//request interceptor
+// request interceptor — attach JWT
 axiosInstance.interceptors.request.use(
-    (config)=>{
+    (config) => {
         const token = localStorage.getItem('token');
-        if(token){
-            config.headers.Authorization = `Bearer ${token}`;
+        if (token) config.headers.Authorization = `Bearer ${token}`;
+
+        // Auth endpoints (register/login) get extra time for email sending + cold starts
+        if (config.url?.startsWith('/api/auth')) {
+            config.timeout = 60000; // 60s for auth routes
         }
+
         return config;
     },
-    (error)=>{
-        return Promise.reject(error);
-    }
-)
+    (error) => Promise.reject(error)
+);
 
-
-//response interceptor
+// response interceptor
 axiosInstance.interceptors.response.use(
-    (response)=> response,
-    (error)=>{
+    (response) => response,
+    (error) => {
         const isAuthEndpoint = error.config?.url?.startsWith('/api/auth');
-        if(error.response?.status === 401 && !isAuthEndpoint){
+
+        if (error.response?.status === 401 && !isAuthEndpoint) {
             localStorage.removeItem('token');
-            window.location.href='/login';
-        } else if (error.response?.status === 500){
+            window.location.href = '/login';
+        } else if (error.response?.status === 500) {
             console.error('Server Error:', error.response.data);
-        } else if (error.code === 'ECONNABORTED'){
+        } else if (error.code === 'ECONNABORTED') {
             console.error('Request timeout. Please try again.');
         }
+
         return Promise.reject(error);
     }
-)
+);
 
 export default axiosInstance;
