@@ -60,6 +60,30 @@ app.get('/api/health/email', (req, res) => {
     });
 });
 
+// Test email route — sends a real test email to diagnose SMTP issues on deployed server
+app.post('/api/health/test-email', async (req, res) => {
+    const { to } = req.body;
+    if (!to) return res.status(400).json({ error: 'Provide { to: "email" } in body' });
+    try {
+        const nodemailer = (await import('nodemailer')).default;
+        const user = (process.env.EMAIL_USER || '').trim();
+        const pass = (process.env.EMAIL_PASSWORD || '').trim();
+        const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user, pass } });
+        await transporter.verify();
+        const info = await transporter.sendMail({
+            from: user, to,
+            subject: 'SMTP Test from Render',
+            text: `SMTP works! EMAIL_USER=${user} CLIENT_URL=${process.env.CLIENT_URL}`,
+        });
+        res.json({ success: true, response: info.response, messageId: info.messageId });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message,
+            EMAIL_USER: process.env.EMAIL_USER || 'NOT SET',
+            EMAIL_PASSWORD_LENGTH: (process.env.EMAIL_PASSWORD || '').length,
+        });
+    }
+});
+
 
 app.use(errorHandler);
 
