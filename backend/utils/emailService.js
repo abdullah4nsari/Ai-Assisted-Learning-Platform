@@ -1,22 +1,16 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-// ── Transporter ───────────────────────────────────────────────────────────────
-const createTransporter = () => {
-    const user = (process.env.EMAIL_USER     || '').trim();
-    const pass = (process.env.EMAIL_PASSWORD || '').trim();
-
-    if (!user || !pass) {
+// ── Resend client (uses HTTPS API — works on Render, no SMTP port needed) ─────
+const getResend = () => {
+    const apiKey = (process.env.RESEND_API_KEY || '').trim();
+    if (!apiKey) {
         throw new Error(
-            'EMAIL_USER and EMAIL_PASSWORD must be set in .env\n' +
-            'For Gmail, use an App Password (not your account password).\n' +
-            'Create one at: Google Account → Security → 2-Step Verification → App passwords'
+            'RESEND_API_KEY is not set.\n' +
+            'Get a free API key at https://resend.com (100 emails/day free)\n' +
+            'Then add RESEND_API_KEY to your Render environment variables.'
         );
     }
-
-    return nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user, pass },
-    });
+    return new Resend(apiKey);
 };
 
 // ── HTML email template ───────────────────────────────────────────────────────
@@ -106,15 +100,17 @@ const verificationEmailTemplate = (username, verificationUrl) => `
 `;
 
 // ── Send verification email ───────────────────────────────────────────────────
-export const sendVerificationEmail = async (email, username, token) => {
+export const sendVerificationEmail = async (toEmail, username, token) => {
     const clientUrl       = (process.env.CLIENT_URL || 'http://localhost:5173').trim();
     const verificationUrl = `${clientUrl}/verify-email/${token}`;
-    const transporter     = createTransporter();
+    const resend          = getResend();
 
-    await transporter.sendMail({
-        from:    `"AI Learning Assistant" <${(process.env.EMAIL_USER || '').trim()}>`,
-        to:      email,
+    const { error } = await resend.emails.send({
+        from:    'AI Learning Assistant <onboarding@resend.dev>',
+        to:      toEmail,
         subject: '✅ Verify your email — AI Learning Assistant',
         html:    verificationEmailTemplate(username, verificationUrl),
     });
+
+    if (error) throw new Error(error.message || 'Failed to send email via Resend');
 };

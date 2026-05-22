@@ -53,33 +53,25 @@ app.use('/api/progress',progressRoutes);
 // Diagnostic route — check if email env vars are configured on the server
 app.get('/api/health/email', (req, res) => {
     res.json({
-        EMAIL_USER_SET:     !!process.env.EMAIL_USER,
-        EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD,
+        RESEND_API_KEY_SET: !!process.env.RESEND_API_KEY,
         CLIENT_URL:         process.env.CLIENT_URL || 'NOT SET',
         NODE_ENV:           process.env.NODE_ENV,
     });
 });
 
-// Test email route — sends a real test email to diagnose SMTP issues on deployed server
+// Test email route — sends a real test email to diagnose issues on deployed server
 app.post('/api/health/test-email', async (req, res) => {
     const { to } = req.body;
     if (!to) return res.status(400).json({ error: 'Provide { to: "email" } in body' });
     try {
-        const nodemailer = (await import('nodemailer')).default;
-        const user = (process.env.EMAIL_USER || '').trim();
-        const pass = (process.env.EMAIL_PASSWORD || '').trim();
-        const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user, pass } });
-        await transporter.verify();
-        const info = await transporter.sendMail({
-            from: user, to,
-            subject: 'SMTP Test from Render',
-            text: `SMTP works! EMAIL_USER=${user} CLIENT_URL=${process.env.CLIENT_URL}`,
-        });
-        res.json({ success: true, response: info.response, messageId: info.messageId });
+        const { sendVerificationEmail } = await import('./utils/emailService.js');
+        await sendVerificationEmail(to, 'TestUser', 'test-token-123');
+        res.json({ success: true, message: `Test email sent to ${to}` });
     } catch (e) {
-        res.status(500).json({ success: false, error: e.message,
-            EMAIL_USER: process.env.EMAIL_USER || 'NOT SET',
-            EMAIL_PASSWORD_LENGTH: (process.env.EMAIL_PASSWORD || '').length,
+        res.status(500).json({
+            success: false,
+            error: e.message,
+            RESEND_API_KEY_SET: !!process.env.RESEND_API_KEY,
         });
     }
 });
