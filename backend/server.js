@@ -50,6 +50,16 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/quizzes',quizRoutes);
 app.use('/api/progress',progressRoutes);
 
+// Diagnostic route — check if email env vars are configured on the server
+app.get('/api/health/email', (req, res) => {
+    res.json({
+        EMAIL_USER_SET:     !!process.env.EMAIL_USER,
+        EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD,
+        CLIENT_URL:         process.env.CLIENT_URL || 'NOT SET',
+        NODE_ENV:           process.env.NODE_ENV,
+    });
+});
+
 
 app.use(errorHandler);
 

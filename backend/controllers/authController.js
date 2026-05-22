@@ -63,7 +63,14 @@ export const register = async (req, res, next) => {
 
         // Send email AFTER responding (true fire-and-forget)
         sendVerificationEmail(email, username, verificationToken)
-            .catch(err => console.error('Verification email failed:', err.message));
+            .catch(err => {
+                console.error('[EMAIL ERROR] Verification email failed to send:');
+                console.error('  To:', email);
+                console.error('  Reason:', err.message);
+                console.error('  EMAIL_USER set:', !!process.env.EMAIL_USER);
+                console.error('  EMAIL_PASSWORD set:', !!process.env.EMAIL_PASSWORD);
+                console.error('  CLIENT_URL:', process.env.CLIENT_URL);
+            });
     } catch (error) {
         next(error);
     }
@@ -202,7 +209,13 @@ export const resendVerification = async (req, res, next) => {
         });
 
         sendVerificationEmail(email, user.username, user.verificationToken)
-            .catch(err => console.error('Resend verification email failed:', err.message));
+            .catch(err => {
+                console.error('[EMAIL ERROR] Resend verification email failed:');
+                console.error('  To:', email);
+                console.error('  Reason:', err.message);
+                console.error('  EMAIL_USER set:', !!process.env.EMAIL_USER);
+                console.error('  EMAIL_PASSWORD set:', !!process.env.EMAIL_PASSWORD);
+            });
     } catch (error) {
         next(error);
     }
