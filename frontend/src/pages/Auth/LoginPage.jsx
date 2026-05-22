@@ -128,9 +128,9 @@ const LoginPage = () => {
                 <p className='text-xs text-red-600 font-medium text-center'>{error}</p>
                 {error.includes('verify') && (
                   <p className='text-xs text-center mt-1.5'>
-                    <a href='/resend-verification' className='font-semibold text-emerald-600 hover:text-emerald-700 underline'>
+                    <Link to='/resend-verification' className='font-semibold text-emerald-600 hover:text-emerald-700 underline'>
                       Resend verification email
-                    </a>
+                    </Link>
                   </p>
                 )}
               </div>
