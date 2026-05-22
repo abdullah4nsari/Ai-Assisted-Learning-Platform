@@ -186,7 +186,7 @@ export const resendVerification = async (req, res, next) => {
             });
         }
 
-        const user = await User.findOne({ email })
+        const user = await User.findOne({ email: email.toLowerCase().trim() })
             .select('+verificationToken +verificationTokenExpiry');
 
         // Always return success to prevent email enumeration

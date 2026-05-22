@@ -16,13 +16,15 @@ const router = express.Router();
 
 const registerValidation = [
     body('username').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters long'),
-    body('email').isEmail().normalizeEmail().withMessage('Please enter a valid email address'),
+    // Use .toLowerCase() only — NOT normalizeEmail() which strips Gmail dots
+    // and makes addresses like mr.abdull4h.ai@gmail.com undeliverable
+    body('email').isEmail().toLowerCase().withMessage('Please enter a valid email address'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
         .matches(/\d/).withMessage('Password must contain at least one number'),
 ];
 
 const loginValidation = [
-    body('email').isEmail().normalizeEmail().withMessage('Please enter a valid email address'),
+    body('email').isEmail().toLowerCase().withMessage('Please enter a valid email address'),
     body('password').notEmpty().withMessage('Password is required'),
 ];
 
