@@ -55,17 +55,15 @@ export const register = async (req, res, next) => {
             verificationTokenExpiry,
         });
 
-        // Send verification email (non-blocking — don't fail registration if email fails)
-        try {
-            await sendVerificationEmail(email, username, verificationToken);
-        } catch (emailErr) {
-            console.error('Verification email failed to send:', emailErr.message);
-        }
-
+        // Respond immediately — don't make the client wait for the email
         res.status(201).json({
             success: true,
             message: 'Account created! Please check your email to verify your account.',
         });
+
+        // Send email AFTER responding (true fire-and-forget)
+        sendVerificationEmail(email, username, verificationToken)
+            .catch(err => console.error('Verification email failed:', err.message));
     } catch (error) {
         next(error);
     }
@@ -197,12 +195,14 @@ export const resendVerification = async (req, res, next) => {
         user.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
         await user.save();
 
-        await sendVerificationEmail(email, user.username, user.verificationToken);
-
+        // Respond immediately, send email in background
         res.status(200).json({
             success: true,
             message: 'Verification email resent. Please check your inbox.',
         });
+
+        sendVerificationEmail(email, user.username, user.verificationToken)
+            .catch(err => console.error('Resend verification email failed:', err.message));
     } catch (error) {
         next(error);
     }
