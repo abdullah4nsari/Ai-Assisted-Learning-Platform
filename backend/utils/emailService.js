@@ -1,7 +1,7 @@
-import nodemailer from 'nodemailer';
+import { mailConfg, sendMail } from 'promailer';
 
-// ── Transporter ───────────────────────────────────────────────────────────────
-const createTransporter = () => {
+// ── Configure transporter once on module load ─────────────────────────────────
+const configure = () => {
     const user = (process.env.EMAIL_USER     || '').trim();
     const pass = (process.env.EMAIL_PASSWORD || '').trim();
 
@@ -9,16 +9,12 @@ const createTransporter = () => {
         throw new Error('EMAIL_USER and EMAIL_PASSWORD must be set in environment variables.');
     }
 
-    // Port 587 with STARTTLS — most reliable for Gmail on cloud hosts
-    return nodemailer.createTransport({
+    mailConfg({
         host:   'smtp.gmail.com',
         port:   587,
-        secure: false, // STARTTLS
-        auth:   { user, pass },
-        tls:    { rejectUnauthorized: false },
-        connectionTimeout: 10000,
-        greetingTimeout:   10000,
-        socketTimeout:     15000,
+        secure: false,
+        user,
+        pass,
     });
 };
 
@@ -80,15 +76,18 @@ const verificationEmailTemplate = (username, verificationUrl) => `
 `;
 
 // ── Send verification email ───────────────────────────────────────────────────
+// promailer API: sendMail(from, to[], subject, htmlTemplate)
 export const sendVerificationEmail = async (toEmail, username, token) => {
     const clientUrl       = (process.env.CLIENT_URL || 'http://localhost:5173').trim();
     const verificationUrl = `${clientUrl}/verify-email/${token}`;
-    const transporter     = createTransporter();
+    const from            = (process.env.EMAIL_USER || '').trim();
 
-    await transporter.sendMail({
-        from:    `"AI Learning Assistant" <${(process.env.EMAIL_USER || '').trim()}>`,
-        to:      toEmail,
-        subject: '✅ Verify your email — AI Learning Assistant',
-        html:    verificationEmailTemplate(username, verificationUrl),
-    });
+    configure();
+
+    await sendMail(
+        from,
+        [toEmail],
+        '✅ Verify your email — AI Learning Assistant',
+        verificationEmailTemplate(username, verificationUrl)
+    );
 };
