@@ -78,7 +78,8 @@ export const sendVerificationEmail = async (toEmail, username, token) => {
             'content-type': 'application/json',
         },
         body: JSON.stringify({
-            sender:      { name: 'AI Learning Assistant', email: fromEmail },
+            sender:      { name: 'AI Learning Assistant', email: 'noreply@brevosend.com' },
+            replyTo:     { email: fromEmail },
             to:          [{ email: toEmail }],
             subject:     '✅ Verify your email — AI Learning Assistant',
             htmlContent: verificationEmailTemplate(username, verificationUrl),
