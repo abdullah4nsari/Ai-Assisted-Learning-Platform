@@ -53,13 +53,11 @@ app.use('/api/progress',progressRoutes);
 // Diagnostic route — check if email env vars are configured on the server
 app.get('/api/health/email', (req, res) => {
     res.json({
-        SMTP_HOST:          process.env.SMTP_HOST || 'NOT SET',
-        SMTP_PORT:          process.env.SMTP_PORT || 'NOT SET',
-        SMTP_USER_SET:      !!process.env.SMTP_USER,
-        SMTP_PASS_SET:      !!process.env.SMTP_PASS,
-        SMTP_PASS_LEN:      (process.env.SMTP_PASS || '').trim().length,
-        CLIENT_URL:         process.env.CLIENT_URL || 'NOT SET',
-        NODE_ENV:           process.env.NODE_ENV,
+        BREVO_USER_SET: !!process.env.BREVO_USER,
+        BREVO_PASS_SET: !!process.env.BREVO_PASS,
+        BREVO_PASS_LEN: (process.env.BREVO_PASS || '').trim().length,
+        CLIENT_URL:     process.env.CLIENT_URL || 'NOT SET',
+        NODE_ENV:       process.env.NODE_ENV,
     });
 });
 
