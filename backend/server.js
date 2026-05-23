@@ -83,10 +83,12 @@ app.post('/api/health/test-email', async (req, res) => {
 app.get('/api/health/ports', async (req, res) => {
     const net = await import('net');
     const tests = [
-        { host: 'smtp.gmail.com', port: 587 },
-        { host: 'smtp.gmail.com', port: 465 },
-        { host: 'smtp.gmail.com', port: 25  },
-        { host: 'api.resend.com', port: 443 },
+        { host: 'smtp.gmail.com',       port: 587 },
+        { host: 'smtp.gmail.com',       port: 465 },
+        { host: 'smtp.gmail.com',       port: 25  },
+        { host: 'smtp-relay.brevo.com', port: 587 },
+        { host: 'smtp-relay.brevo.com', port: 465 },
+        { host: 'api.resend.com',       port: 443 },
     ];
     const results = await Promise.all(tests.map(({ host, port }) =>
         new Promise(resolve => {
