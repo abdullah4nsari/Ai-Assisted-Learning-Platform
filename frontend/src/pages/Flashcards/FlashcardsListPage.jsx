@@ -373,17 +373,47 @@ const StudyView = ({ set, onBack }) => {
 
       <h2 className="text-lg font-bold text-slate-800 truncate">{set.documentId?.title || 'Flashcard Set'}</h2>
 
-      {/* progress bar */}
-      <div className="space-y-1.5">
-        <div className="flex justify-between text-xs text-slate-400">
-          <span>Card {index + 1} of {total}</span>
-          <span>{progressPct}% visited</span>
+      {/* ── Progress bar ── */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+        {/* stats row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 text-xs">
+            <span className="flex items-center gap-1.5 font-semibold text-emerald-600">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+              {visited.size} visited
+            </span>
+            <span className="flex items-center gap-1.5 font-semibold text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-slate-200 inline-block" />
+              {total - visited.size} remaining
+            </span>
+          </div>
+          <span className="text-xs font-bold text-slate-600 tabular-nums">
+            {index + 1} / {total}
+          </span>
         </div>
-        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-          <div
-            className="bg-gradient-to-r from-emerald-400 to-teal-500 h-2 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${progressPct}%` }}
-          />
+        {/* segmented bar */}
+        <div className="flex gap-0.5 h-2.5 rounded-full overflow-hidden">
+          {cards.map((_, i) => (
+            <div
+              key={i}
+              onClick={() => goTo(i, i > index ? 'right' : 'left')}
+              title={`Card ${i + 1}`}
+              className={`flex-1 rounded-sm cursor-pointer transition-all duration-300 ${
+                i === index
+                  ? 'bg-emerald-500 scale-y-125'
+                  : visited.has(i)
+                  ? 'bg-emerald-300'
+                  : 'bg-slate-200'
+              }`}
+            />
+          ))}
+        </div>
+        {/* percentage label */}
+        <div className="flex items-center justify-between text-[10px] text-slate-400">
+          <span>{progressPct}% complete</span>
+          {progressPct === 100 && (
+            <span className="text-emerald-600 font-bold">🎉 All cards visited!</span>
+          )}
         </div>
       </div>
 

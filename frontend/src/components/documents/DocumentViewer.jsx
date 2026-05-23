@@ -28,7 +28,7 @@ const DocumentViewer = ({ documentId }) => {
 
   if (error || !blobUrl) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 rounded-2xl border-2 border-dashed border-neutral-200 text-neutral-400">
+      <div className="flex flex-col items-center justify-center h-64 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400">
         <BookOpen size={40} className="mb-3 opacity-40" />
         <p className="font-medium">No file available for this document.</p>
       </div>
@@ -38,7 +38,7 @@ const DocumentViewer = ({ documentId }) => {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-neutral-500">PDF Preview</p>
+        <p className="text-sm text-slate-500">PDF Preview</p>
         <a
           href={blobUrl}
           target="_blank"
@@ -51,7 +51,7 @@ const DocumentViewer = ({ documentId }) => {
       <iframe
         src={blobUrl}
         title="Document Preview"
-        className="w-full rounded-2xl border border-neutral-200 shadow-sm"
+        className="w-full rounded-2xl border border-slate-200 shadow-sm"
         style={{ height: '70vh' }}
       />
     </div>
