@@ -5,6 +5,7 @@ import authService from '../../services/authService.js'
 import {BrainCircuit, Mail, Lock, ArrowRight} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useGoogleLogin } from '@react-oauth/google'
+import AuthLayout from '../../components/layout/AuthLayout.jsx'
 
 const LoginPage = () => {
 
@@ -66,10 +67,10 @@ const LoginPage = () => {
   }
 
   return (
-    <div className='flex items-center justify-center min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-50'>
-      <div className='absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[16px_16px] opacity-30'/>
+    <AuthLayout>
+      <div className='flex items-center justify-center min-h-screen'>
       <div className='relative w-full max-w-md px-6'>
-        <div className='bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-xl shadow-slate-200/50 p-10'>
+        <div className='auth-card bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-xl shadow-slate-200/50 p-10'>
         {/* header  */}
           <div className='text-center mb-10'>
             <div className='inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br from-emerald-400 to-teal-500 shadow-lg shadow-emerald-500/25 mb-6'>
@@ -187,7 +188,8 @@ const LoginPage = () => {
           By continuing, you are agree to our Terms & Privacy Policy
         </p>
       </div>
-    </div>
+      </div>
+    </AuthLayout>
   )
 }
 

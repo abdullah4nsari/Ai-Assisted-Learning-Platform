@@ -5,6 +5,7 @@ import {BrainCircuit, Mail, Lock, User, ArrowRight} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext.jsx';
+import AuthLayout from '../../components/layout/AuthLayout.jsx';
 
 
 
@@ -76,10 +77,10 @@ const RegisterPage = () => {
   }
 };
   return (
-    <div className='flex items-center justify-center min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-50'>
-          <div className='absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[16px_16px] opacity-30'/>
+    <AuthLayout>
+          <div className='flex items-center justify-center min-h-screen'>
           <div className='relative w-full max-w-md px-6'>
-            <div className='bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-xl shadow-slate-200/50 p-10'>
+            <div className='auth-card bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-xl shadow-slate-200/50 p-10'>
             {/* ── Check-email state after successful registration ── */}
             {registered ? (
               <div className='text-center'>
@@ -231,7 +232,8 @@ const RegisterPage = () => {
               By continuing, you are agree to our Terms & Privacy Policy
             </p>
           </div>
-        </div>
+          </div>
+    </AuthLayout>
   )
 }
 
