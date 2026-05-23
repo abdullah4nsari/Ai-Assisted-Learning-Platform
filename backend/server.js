@@ -53,9 +53,11 @@ app.use('/api/progress',progressRoutes);
 // Diagnostic route — check if email env vars are configured on the server
 app.get('/api/health/email', (req, res) => {
     res.json({
-        EMAIL_USER_SET:     !!process.env.EMAIL_USER,
-        EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD,
-        EMAIL_PASSWORD_LEN: (process.env.EMAIL_PASSWORD || '').trim().length,
+        SMTP_HOST:          process.env.SMTP_HOST || 'NOT SET',
+        SMTP_PORT:          process.env.SMTP_PORT || 'NOT SET',
+        SMTP_USER_SET:      !!process.env.SMTP_USER,
+        SMTP_PASS_SET:      !!process.env.SMTP_PASS,
+        SMTP_PASS_LEN:      (process.env.SMTP_PASS || '').trim().length,
         CLIENT_URL:         process.env.CLIENT_URL || 'NOT SET',
         NODE_ENV:           process.env.NODE_ENV,
     });
@@ -71,8 +73,8 @@ app.post('/api/health/test-email', async (req, res) => {
         res.json({ success: true, message: `Email sent to ${to}` });
     } catch (e) {
         res.status(500).json({
-            success: false,
-            error: e.message,
+            success:            false,
+            error:              e.message,
             EMAIL_USER_SET:     !!process.env.EMAIL_USER,
             EMAIL_PASSWORD_LEN: (process.env.EMAIL_PASSWORD || '').trim().length,
         });

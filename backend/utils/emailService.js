@@ -1,20 +1,39 @@
-import { mailConfg, sendMail } from 'promailer';
+import nodemailer from 'nodemailer';
 
-// ── Configure transporter once on module load ─────────────────────────────────
-const configure = () => {
-    const user = (process.env.EMAIL_USER     || '').trim();
-    const pass = (process.env.EMAIL_PASSWORD || '').trim();
+// ── Transporter ───────────────────────────────────────────────────────────────
+// Supports any SMTP provider via environment variables:
+//
+// Brevo (free 300/day):
+//   SMTP_HOST=smtp-relay.brevo.com  SMTP_PORT=587
+//   SMTP_USER=your_brevo_login_email  SMTP_PASS=your_brevo_smtp_key
+//
+// Mailgun:
+//   SMTP_HOST=smtp.mailgun.org  SMTP_PORT=587
+//   SMTP_USER=postmaster@yourdomain  SMTP_PASS=your_mailgun_smtp_password
+//
+// Gmail (local dev only — blocked on Render):
+//   SMTP_HOST=smtp.gmail.com  SMTP_PORT=587
+//   SMTP_USER=your@gmail.com  SMTP_PASS=your_app_password
 
-    if (!user || !pass) {
-        throw new Error('EMAIL_USER and EMAIL_PASSWORD must be set in environment variables.');
+const createTransporter = () => {
+    const host = (process.env.SMTP_HOST || '').trim();
+    const port =  parseInt(process.env.SMTP_PORT || '587', 10);
+    const user = (process.env.SMTP_USER || '').trim();
+    const pass = (process.env.SMTP_PASS || '').trim();
+
+    if (!host || !user || !pass) {
+        throw new Error(
+            'SMTP_HOST, SMTP_USER and SMTP_PASS must be set in environment variables.\n' +
+            'Recommended: use Brevo (free 300 emails/day) — smtp-relay.brevo.com:587'
+        );
     }
 
-    mailConfg({
-        host:   'smtp.gmail.com',
-        port:   587,
-        secure: false,
-        user,
-        pass,
+    return nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,   // true for 465, false for 587
+        auth: { user, pass },
+        tls:  { rejectUnauthorized: false },
     });
 };
 
@@ -42,7 +61,7 @@ const verificationEmailTemplate = (username, verificationUrl) => `
             <td style="padding:40px 40px 32px;">
               <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0f172a;">Hi ${username} 👋</p>
               <p style="margin:0 0 24px;font-size:15px;color:#475569;line-height:1.6;">
-                Thanks for signing up! Please verify your email address to activate your account.
+                Thanks for signing up! Please verify your email address to activate your account and start learning.
               </p>
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
@@ -76,18 +95,16 @@ const verificationEmailTemplate = (username, verificationUrl) => `
 `;
 
 // ── Send verification email ───────────────────────────────────────────────────
-// promailer API: sendMail(from, to[], subject, htmlTemplate)
 export const sendVerificationEmail = async (toEmail, username, token) => {
     const clientUrl       = (process.env.CLIENT_URL || 'http://localhost:5173').trim();
     const verificationUrl = `${clientUrl}/verify-email/${token}`;
-    const from            = (process.env.EMAIL_USER || '').trim();
+    const fromEmail       = (process.env.SMTP_USER || '').trim();
+    const transporter     = createTransporter();
 
-    configure();
-
-    await sendMail(
-        from,
-        [toEmail],
-        '✅ Verify your email — AI Learning Assistant',
-        verificationEmailTemplate(username, verificationUrl)
-    );
+    await transporter.sendMail({
+        from:    `"AI Learning Assistant" <${fromEmail}>`,
+        to:      toEmail,
+        subject: '✅ Verify your email — AI Learning Assistant',
+        html:    verificationEmailTemplate(username, verificationUrl),
+    });
 };
