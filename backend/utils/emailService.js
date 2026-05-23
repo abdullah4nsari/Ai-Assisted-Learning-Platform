@@ -1,16 +1,25 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-// ── Resend client (uses HTTPS API — works on Render, no SMTP port needed) ─────
-const getResend = () => {
-    const apiKey = (process.env.RESEND_API_KEY || '').trim();
-    if (!apiKey) {
-        throw new Error(
-            'RESEND_API_KEY is not set.\n' +
-            'Get a free API key at https://resend.com (100 emails/day free)\n' +
-            'Then add RESEND_API_KEY to your Render environment variables.'
-        );
+// ── Transporter ───────────────────────────────────────────────────────────────
+const createTransporter = () => {
+    const user = (process.env.EMAIL_USER     || '').trim();
+    const pass = (process.env.EMAIL_PASSWORD || '').trim();
+
+    if (!user || !pass) {
+        throw new Error('EMAIL_USER and EMAIL_PASSWORD must be set in environment variables.');
     }
-    return new Resend(apiKey);
+
+    // Port 587 with STARTTLS — most reliable for Gmail on cloud hosts
+    return nodemailer.createTransport({
+        host:   'smtp.gmail.com',
+        port:   587,
+        secure: false, // STARTTLS
+        auth:   { user, pass },
+        tls:    { rejectUnauthorized: false },
+        connectionTimeout: 10000,
+        greetingTimeout:   10000,
+        socketTimeout:     15000,
+    });
 };
 
 // ── HTML email template ───────────────────────────────────────────────────────
@@ -27,70 +36,41 @@ const verificationEmailTemplate = (username, verificationUrl) => `
     <tr>
       <td align="center">
         <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-
-          <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#10b981,#14b8a6);padding:36px 40px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.3px;">
-                🧠 AI Learning Assistant
-              </h1>
-              <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">
-                Verify your email address
-              </p>
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">🧠 AI Learning Assistant</h1>
+              <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Verify your email address</p>
             </td>
           </tr>
-
-          <!-- Body -->
           <tr>
             <td style="padding:40px 40px 32px;">
-              <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0f172a;">
-                Hi ${username} 👋
-              </p>
+              <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0f172a;">Hi ${username} 👋</p>
               <p style="margin:0 0 24px;font-size:15px;color:#475569;line-height:1.6;">
-                Thanks for signing up! Please verify your email address to activate your account and start learning.
+                Thanks for signing up! Please verify your email address to activate your account.
               </p>
-
-              <!-- CTA Button -->
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding:8px 0 32px;">
                     <a href="${verificationUrl}"
-                       style="display:inline-block;background:linear-gradient(135deg,#10b981,#14b8a6);color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 36px;border-radius:10px;letter-spacing:0.2px;">
+                       style="display:inline-block;background:linear-gradient(135deg,#10b981,#14b8a6);color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 36px;border-radius:10px;">
                       ✅ Verify Email Address
                     </a>
                   </td>
                 </tr>
               </table>
-
-              <p style="margin:0 0 8px;font-size:13px;color:#64748b;">
-                Or copy and paste this link into your browser:
-              </p>
-              <p style="margin:0 0 28px;font-size:12px;color:#10b981;word-break:break-all;">
-                ${verificationUrl}
-              </p>
-
-              <!-- Expiry notice -->
+              <p style="margin:0 0 8px;font-size:13px;color:#64748b;">Or copy this link into your browser:</p>
+              <p style="margin:0 0 28px;font-size:12px;color:#10b981;word-break:break-all;">${verificationUrl}</p>
               <div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:12px 16px;margin-bottom:24px;">
-                <p style="margin:0;font-size:13px;color:#854d0e;">
-                  ⏰ This link expires in <strong>24 hours</strong>. If it expires, you can request a new one from the login page.
-                </p>
+                <p style="margin:0;font-size:13px;color:#854d0e;">⏰ This link expires in <strong>24 hours</strong>.</p>
               </div>
-
-              <p style="margin:0;font-size:13px;color:#94a3b8;">
-                If you didn't create an account, you can safely ignore this email.
-              </p>
+              <p style="margin:0;font-size:13px;color:#94a3b8;">If you didn't create an account, ignore this email.</p>
             </td>
           </tr>
-
-          <!-- Footer -->
           <tr>
             <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px;text-align:center;">
-              <p style="margin:0;font-size:12px;color:#94a3b8;">
-                © ${new Date().getFullYear()} AI Learning Assistant · All rights reserved
-              </p>
+              <p style="margin:0;font-size:12px;color:#94a3b8;">© ${new Date().getFullYear()} AI Learning Assistant</p>
             </td>
           </tr>
-
         </table>
       </td>
     </tr>
@@ -103,14 +83,12 @@ const verificationEmailTemplate = (username, verificationUrl) => `
 export const sendVerificationEmail = async (toEmail, username, token) => {
     const clientUrl       = (process.env.CLIENT_URL || 'http://localhost:5173').trim();
     const verificationUrl = `${clientUrl}/verify-email/${token}`;
-    const resend          = getResend();
+    const transporter     = createTransporter();
 
-    const { error } = await resend.emails.send({
-        from:    'AI Learning Assistant <onboarding@resend.dev>',
+    await transporter.sendMail({
+        from:    `"AI Learning Assistant" <${(process.env.EMAIL_USER || '').trim()}>`,
         to:      toEmail,
         subject: '✅ Verify your email — AI Learning Assistant',
         html:    verificationEmailTemplate(username, verificationUrl),
     });
-
-    if (error) throw new Error(error.message || 'Failed to send email via Resend');
 };

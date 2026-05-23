@@ -53,27 +53,51 @@ app.use('/api/progress',progressRoutes);
 // Diagnostic route — check if email env vars are configured on the server
 app.get('/api/health/email', (req, res) => {
     res.json({
-        RESEND_API_KEY_SET: !!process.env.RESEND_API_KEY,
+        EMAIL_USER_SET:     !!process.env.EMAIL_USER,
+        EMAIL_PASSWORD_SET: !!process.env.EMAIL_PASSWORD,
+        EMAIL_PASSWORD_LEN: (process.env.EMAIL_PASSWORD || '').trim().length,
         CLIENT_URL:         process.env.CLIENT_URL || 'NOT SET',
         NODE_ENV:           process.env.NODE_ENV,
     });
 });
 
-// Test email route — sends a real test email to diagnose issues on deployed server
+// Test email route — sends a real test email and returns exact error if it fails
 app.post('/api/health/test-email', async (req, res) => {
     const { to } = req.body;
     if (!to) return res.status(400).json({ error: 'Provide { to: "email" } in body' });
     try {
         const { sendVerificationEmail } = await import('./utils/emailService.js');
         await sendVerificationEmail(to, 'TestUser', 'test-token-123');
-        res.json({ success: true, message: `Test email sent to ${to}` });
+        res.json({ success: true, message: `Email sent to ${to}` });
     } catch (e) {
         res.status(500).json({
             success: false,
             error: e.message,
-            RESEND_API_KEY_SET: !!process.env.RESEND_API_KEY,
+            EMAIL_USER_SET:     !!process.env.EMAIL_USER,
+            EMAIL_PASSWORD_LEN: (process.env.EMAIL_PASSWORD || '').trim().length,
         });
     }
+});
+
+// Port connectivity test — checks which outbound ports Render allows
+app.get('/api/health/ports', async (req, res) => {
+    const net = await import('net');
+    const tests = [
+        { host: 'smtp.gmail.com', port: 587 },
+        { host: 'smtp.gmail.com', port: 465 },
+        { host: 'smtp.gmail.com', port: 25  },
+        { host: 'api.resend.com', port: 443 },
+    ];
+    const results = await Promise.all(tests.map(({ host, port }) =>
+        new Promise(resolve => {
+            const sock = new net.default.Socket();
+            sock.setTimeout(5000);
+            sock.connect(port, host, () => { sock.destroy(); resolve({ host, port, open: true }); });
+            sock.on('error',   () => { sock.destroy(); resolve({ host, port, open: false, reason: 'error' }); });
+            sock.on('timeout', () => { sock.destroy(); resolve({ host, port, open: false, reason: 'timeout' }); });
+        })
+    ));
+    res.json(results);
 });
 
 
