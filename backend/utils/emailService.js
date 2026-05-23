@@ -1,36 +1,12 @@
-import nodemailer from 'nodemailer';
-
-// ── Brevo (formerly Sendinblue) SMTP over HTTPS-compatible port ───────────────
-// Brevo uses port 587 BUT routes through their infrastructure which Render allows.
-// If port 587 is blocked, we fall back to their HTTP API via nodemailer's
-// custom transport using fetch (port 443 only).
+// Brevo HTTP API — uses port 443 (HTTPS), works on Render free tier
+// All SMTP ports (587, 465, 25) are blocked on Render.
 //
-// Required env vars on Render:
-//   BREVO_USER  = your Brevo login email
-//   BREVO_PASS  = your Brevo SMTP key (from brevo.com → SMTP & API → SMTP tab)
-//   CLIENT_URL  = https://your-frontend.vercel.app
+// Required env vars:
+//   BREVO_API_KEY  = your Brevo API key (starts with xkeysib-)
+//                   Get it: brevo.com → top-right menu → SMTP & API → API Keys → Generate
+//   BREVO_USER     = your Brevo sender email (must be verified in Brevo)
+//   CLIENT_URL     = https://your-frontend.vercel.app
 
-const createTransporter = () => {
-    const user = (process.env.BREVO_USER || '').trim();
-    const pass = (process.env.BREVO_PASS || '').trim();
-
-    if (!user || !pass) {
-        throw new Error(
-            'BREVO_USER and BREVO_PASS must be set.\n' +
-            'Sign up free at brevo.com → SMTP & API → SMTP tab → copy credentials.'
-        );
-    }
-
-    return nodemailer.createTransport({
-        host:   'smtp-relay.brevo.com',
-        port:   587,
-        secure: false,
-        auth:   { user, pass },
-        tls:    { rejectUnauthorized: false },
-    });
-};
-
-// ── HTML email template ───────────────────────────────────────────────────────
 const verificationEmailTemplate = (username, verificationUrl) => `
 <!DOCTYPE html>
 <html lang="en">
@@ -84,17 +60,34 @@ const verificationEmailTemplate = (username, verificationUrl) => `
 </body>
 </html>`;
 
-// ── Send verification email ───────────────────────────────────────────────────
 export const sendVerificationEmail = async (toEmail, username, token) => {
-    const clientUrl       = (process.env.CLIENT_URL || 'http://localhost:5173').trim();
-    const verificationUrl = `${clientUrl}/verify-email/${token}`;
-    const from            = (process.env.BREVO_USER || '').trim();
-    const transporter     = createTransporter();
+    const apiKey    = (process.env.BREVO_API_KEY || '').trim();
+    const fromEmail = (process.env.BREVO_USER    || '').trim();
+    const clientUrl = (process.env.CLIENT_URL    || 'http://localhost:5173').trim();
 
-    await transporter.sendMail({
-        from:    `"AI Learning Assistant" <${from}>`,
-        to:      toEmail,
-        subject: '✅ Verify your email — AI Learning Assistant',
-        html:    verificationEmailTemplate(username, verificationUrl),
+    if (!apiKey)    throw new Error('BREVO_API_KEY is not set. Get it from brevo.com → SMTP & API → API Keys.');
+    if (!fromEmail) throw new Error('BREVO_USER is not set.');
+
+    const verificationUrl = `${clientUrl}/verify-email/${token}`;
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method:  'POST',
+        headers: {
+            'accept':       'application/json',
+            'api-key':      apiKey,
+            'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+            sender:      { name: 'AI Learning Assistant', email: fromEmail },
+            to:          [{ email: toEmail }],
+            subject:     '✅ Verify your email — AI Learning Assistant',
+            htmlContent: verificationEmailTemplate(username, verificationUrl),
+        }),
     });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || `Brevo API error: ${response.status}`);
+    }
 };

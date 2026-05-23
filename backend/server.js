@@ -53,11 +53,10 @@ app.use('/api/progress',progressRoutes);
 // Diagnostic route — check if email env vars are configured on the server
 app.get('/api/health/email', (req, res) => {
     res.json({
-        BREVO_USER_SET: !!process.env.BREVO_USER,
-        BREVO_PASS_SET: !!process.env.BREVO_PASS,
-        BREVO_PASS_LEN: (process.env.BREVO_PASS || '').trim().length,
-        CLIENT_URL:     process.env.CLIENT_URL || 'NOT SET',
-        NODE_ENV:       process.env.NODE_ENV,
+        BREVO_API_KEY_SET: !!process.env.BREVO_API_KEY,
+        BREVO_USER_SET:    !!process.env.BREVO_USER,
+        CLIENT_URL:        process.env.CLIENT_URL || 'NOT SET',
+        NODE_ENV:          process.env.NODE_ENV,
     });
 });
 
