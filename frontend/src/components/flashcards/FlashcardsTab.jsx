@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Layers, ArrowLeft, Star, RotateCcw,
-  ChevronLeft, ChevronRight, BrainCircuit, Trash2, Plus, Loader2,
+  ChevronLeft, ChevronRight, BrainCircuit, Trash2, Plus, Loader2, X,
 } from 'lucide-react';
 import flashcardService from '../../services/flashcardService';
 import Spinner from '../common/Spinner';
@@ -30,6 +30,133 @@ if (!document.getElementById(STYLE_ID)) {
   `;
   document.head.appendChild(s);
 }
+
+// ── GenerateModal ─────────────────────────────────────────────────────────────
+const QUICK_COUNTS = [5, 8, 10, 15, 20];
+
+const GenerateModal = ({ onClose, onConfirm, loading }) => {
+  const [count,     setCount]     = useState(10);
+  const [custom,    setCustom]    = useState('');
+  const [useCustom, setUseCustom] = useState(false);
+
+  const finalCount = useCustom ? parseInt(custom, 10) : count;
+  const isValid    = !isNaN(finalCount) && finalCount >= 1 && finalCount <= 50;
+
+  const handleQuickPick = (n) => {
+    setCount(n);
+    setUseCustom(false);
+    setCustom('');
+  };
+
+  const handleCustomChange = (v) => {
+    setCustom(v);
+    setUseCustom(true);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm border border-slate-100 animate-fadeInLeft">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/25">
+              <BrainCircuit size={15} className="text-white" />
+            </div>
+            <h2 className="text-sm font-bold text-slate-800">Generate Flashcards</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Quick pick */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Number of Cards
+            </label>
+            <div className="flex gap-2">
+              {QUICK_COUNTS.map(n => (
+                <button
+                  key={n}
+                  onClick={() => handleQuickPick(n)}
+                  className={`flex-1 py-2 text-sm font-bold rounded-xl border transition-all duration-150 ${
+                    !useCustom && count === n
+                      ? 'border-emerald-400 bg-emerald-50 text-emerald-700 shadow-sm'
+                      : 'border-slate-200 text-slate-600 hover:border-emerald-300 hover:text-emerald-600'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom input */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Custom Amount <span className="normal-case font-normal text-slate-400">(1 – 50)</span>
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={custom}
+              onChange={e => handleCustomChange(e.target.value)}
+              placeholder="e.g. 12"
+              className={`w-full py-2.5 px-3.5 border-2 rounded-xl text-sm font-medium transition-all duration-200 focus:outline-none ${
+                useCustom && !isValid
+                  ? 'border-red-300 bg-red-50 text-red-700'
+                  : useCustom
+                  ? 'border-emerald-400 bg-emerald-50/50 text-slate-800'
+                  : 'border-slate-200 text-slate-800 focus:border-emerald-400'
+              }`}
+            />
+            {useCustom && !isValid && (
+              <p className="text-xs text-red-500 font-medium">Enter a number between 1 and 50.</p>
+            )}
+          </div>
+
+          {/* Summary */}
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
+            <Layers size={14} className="text-emerald-500 shrink-0" />
+            <p className="text-xs text-slate-600">
+              Will generate{' '}
+              <span className="font-bold text-slate-800">
+                {isValid ? finalCount : '—'}
+              </span>{' '}
+              flashcard{finalCount !== 1 ? 's' : ''} from this document.
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => isValid && onConfirm(finalCount)}
+              disabled={!isValid || loading}
+              className="flex-1 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2"
+            >
+              {loading
+                ? <><Loader2 size={14} className="animate-spin" /> Generating…</>
+                : <><BrainCircuit size={14} /> Generate</>}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ── FlipCard ──────────────────────────────────────────────────────────────────
 const FlipCard = ({ card, animClass, onStarToggle }) => {
@@ -104,7 +231,6 @@ const SetCard = ({ set, onStudy, onDelete, index, deleting }) => {
       style={{ animationDelay: `${index * 60}ms` }}
       onClick={() => onStudy(set)}
     >
-      {/* hover delete */}
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(set._id); }}
         disabled={deleting === set._id}
@@ -220,7 +346,7 @@ const StudyView = ({ set, onBack }) => {
 
       <h2 className="text-base font-bold text-slate-800 truncate">{set.documentId?.title || 'Flashcard Set'}</h2>
 
-      {/* ── Progress bar ── */}
+      {/* Progress bar */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 text-xs">
@@ -257,7 +383,7 @@ const StudyView = ({ set, onBack }) => {
         </div>
       </div>
 
-      {/* animated flip card */}
+      {/* Flip card */}
       <FlipCard
         key={cardKey}
         card={card}
@@ -265,7 +391,7 @@ const StudyView = ({ set, onBack }) => {
         onStarToggle={handleStarToggle}
       />
 
-      {/* nav controls */}
+      {/* Nav controls */}
       <div className="flex items-center justify-between gap-3">
         <button
           onClick={() => goTo(index - 1, 'left')}
@@ -301,6 +427,7 @@ const FlashcardsTab = ({ documentId, cards, loading, onGenerate }) => {
   const [setsLoading, setSetsLoading] = useState(true);
   const [activeSet,   setActiveSet]   = useState(null);
   const [deleting,    setDeleting]    = useState(null);
+  const [showModal,   setShowModal]   = useState(false);
 
   const fetchSets = () => {
     if (!documentId) return;
@@ -315,7 +442,6 @@ const FlashcardsTab = ({ documentId, cards, loading, onGenerate }) => {
     fetchSets();
   }, [documentId]);
 
-  // refresh after generation
   useEffect(() => {
     if (!documentId || loading) return;
     flashcardService.getFLashcardsForDocument(documentId)
@@ -336,7 +462,12 @@ const FlashcardsTab = ({ documentId, cards, loading, onGenerate }) => {
     }
   };
 
-  // ── Study view ──
+  // Called when user confirms count in modal
+  const handleConfirm = (count) => {
+    setShowModal(false);
+    onGenerate(count);
+  };
+
   if (activeSet) {
     return (
       <StudyView
@@ -346,10 +477,9 @@ const FlashcardsTab = ({ documentId, cards, loading, onGenerate }) => {
     );
   }
 
-  // ── Sets view ──
   return (
     <div className="space-y-5">
-      {/* section header */}
+      {/* Header */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -359,7 +489,7 @@ const FlashcardsTab = ({ documentId, cards, loading, onGenerate }) => {
             </p>
           </div>
           <button
-            onClick={onGenerate}
+            onClick={() => setShowModal(true)}
             disabled={loading}
             className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md shadow-emerald-500/20"
           >
@@ -372,10 +502,8 @@ const FlashcardsTab = ({ documentId, cards, loading, onGenerate }) => {
         </div>
       </div>
 
-      {/* loading */}
       {(setsLoading || loading) && <Spinner />}
 
-      {/* empty state */}
       {!setsLoading && !loading && sets.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400">
           <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
@@ -386,7 +514,6 @@ const FlashcardsTab = ({ documentId, cards, loading, onGenerate }) => {
         </div>
       )}
 
-      {/* sets grid */}
       {!setsLoading && sets.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {sets.map((set, i) => (
@@ -400,6 +527,14 @@ const FlashcardsTab = ({ documentId, cards, loading, onGenerate }) => {
             />
           ))}
         </div>
+      )}
+
+      {showModal && (
+        <GenerateModal
+          loading={loading}
+          onClose={() => setShowModal(false)}
+          onConfirm={handleConfirm}
+        />
       )}
     </div>
   );

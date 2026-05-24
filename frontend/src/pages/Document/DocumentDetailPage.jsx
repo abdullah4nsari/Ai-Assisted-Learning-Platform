@@ -133,12 +133,12 @@ const DocumentDetailPage = () => {
         finally { setExplainLoading(false); explainInFlight.current = false; }
     };
 
-    const handleGenerateFlashcards = async () => {
+    const handleGenerateFlashcards = async (count = 10) => {
         if (flashcardsInFlight.current) return;
         flashcardsInFlight.current = true;
         setFlashcardsLoading(true);
         try {
-            const res = await aiService.generateFlashcards(id, 8);
+            const res = await aiService.generateFlashcards(id, count);
             const data = res?.data?.cards || res?.data?.flashcards || [];
             setFlashcards(data);
             if (!data.length) toast('No flashcards returned.');
@@ -183,7 +183,7 @@ const DocumentDetailPage = () => {
     const doc = document.data;
 
     return (
-        <div className="max-w-5xl mx-auto space-y-5 pb-8 overflow-x-hidden">
+        <div className="max-w-5xl mx-auto space-y-5 pb-8">
 
             {/* Header */}
             <motion.div
@@ -233,13 +233,13 @@ const DocumentDetailPage = () => {
                 </div>
             </motion.div>
 
-            {/* Tab Panels */}
-            <div>
-                <div className={activeTab === 'Content'    ? '' : 'hidden'}><DocumentViewer filePath={doc.filepath || doc.filePath} documentId={id} /></div>
-                <div className={activeTab === 'Chat'       ? '' : 'hidden'}><ChatInterface messages={messages} input={chatInput} loading={chatLoading} onInputChange={setChatInput} onSend={handleSendMessage} /></div>
-                <div className={activeTab === 'AI Actions' ? '' : 'hidden'}><AIActions summary={summary} summaryLoading={summaryLoading} onSummarize={handleSummarize} explanation={explanation} explainLoading={explainLoading} onExplain={handleExplainConcept} /></div>
-                <div className={activeTab === 'Flashcards' ? '' : 'hidden'}><FlashcardsTab documentId={id} cards={flashcards} loading={flashcardsLoading} onGenerate={handleGenerateFlashcards} /></div>
-                <div className={activeTab === 'Quizzes'    ? '' : 'hidden'}><QuizzesTab questions={questions} loading={quizLoading} onGenerate={handleGenerateQuiz} /></div>
+            {/* Tab Panels — visibility:hidden keeps DOM alive but removes from layout flow so scroll height is correct */}
+            <div className="relative">
+                <div style={{ display: activeTab === 'Content'    ? 'block' : 'none' }}><DocumentViewer filePath={doc.filepath || doc.filePath} documentId={id} /></div>
+                <div style={{ display: activeTab === 'Chat'       ? 'block' : 'none' }}><ChatInterface messages={messages} input={chatInput} loading={chatLoading} onInputChange={setChatInput} onSend={handleSendMessage} /></div>
+                <div style={{ display: activeTab === 'AI Actions' ? 'block' : 'none' }}><AIActions summary={summary} summaryLoading={summaryLoading} onSummarize={handleSummarize} explanation={explanation} explainLoading={explainLoading} onExplain={handleExplainConcept} /></div>
+                <div style={{ display: activeTab === 'Flashcards' ? 'block' : 'none' }}><FlashcardsTab documentId={id} cards={flashcards} loading={flashcardsLoading} onGenerate={handleGenerateFlashcards} /></div>
+                <div style={{ display: activeTab === 'Quizzes'    ? 'block' : 'none' }}><QuizzesTab questions={questions} loading={quizLoading} onGenerate={handleGenerateQuiz} /></div>
             </div>
         </div>
     );
