@@ -35,7 +35,7 @@ const Header = ({ toggleSidebar }) => {
                 <motion.button
                     whileTap={{ scale: 0.92 }}
                     onClick={toggleSidebar}
-                    className="md:hidden inline-flex items-center justify-center w-9 h-9 text-slate-600 hover:bg-slate-100 rounded-xl transition-all duration-200"
+                    className="md:hidden inline-flex items-center justify-center w-9 h-9 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all duration-200"
                     aria-label="Toggle Sidebar"
                 >
                     <Menu size={20} />
@@ -45,37 +45,69 @@ const Header = ({ toggleSidebar }) => {
 
                 <div className="flex items-center gap-2">
 
-                    {/* Theme toggle */}
+                    {/* Theme toggle — inline styles so thumb position always works */}
                     <motion.button
                         whileTap={{ scale: 0.92 }}
                         onClick={toggleTheme}
                         aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                        className={`relative inline-flex items-center w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
-                            isDark ? 'bg-slate-700' : 'bg-slate-200'
-                        }`}
+                        style={{
+                            position: 'relative',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            width: '56px',
+                            height: '28px',
+                            borderRadius: '9999px',
+                            backgroundColor: isDark ? '#334155' : '#e2e8f0',
+                            transition: 'background-color 0.3s ease',
+                            cursor: 'pointer',
+                            border: 'none',
+                            outline: 'none',
+                            flexShrink: 0,
+                        }}
                     >
                         <Sun
                             size={12}
-                            className={`absolute left-1.5 transition-opacity duration-200 ${isDark ? 'opacity-30 text-amber-400' : 'opacity-100 text-amber-500'}`}
+                            style={{
+                                position: 'absolute',
+                                left: '6px',
+                                color: '#f59e0b',
+                                opacity: isDark ? 0.3 : 1,
+                                transition: 'opacity 0.2s ease',
+                            }}
                         />
                         <Moon
                             size={12}
-                            className={`absolute right-1.5 transition-opacity duration-200 ${isDark ? 'opacity-100 text-slate-300' : 'opacity-30 text-slate-400'}`}
+                            style={{
+                                position: 'absolute',
+                                right: '6px',
+                                color: '#94a3b8',
+                                opacity: isDark ? 1 : 0.3,
+                                transition: 'opacity 0.2s ease',
+                            }}
                         />
                         <motion.span
-                            layout
+                            animate={{ x: isDark ? 30 : 4 }}
                             transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                            className={`absolute w-5 h-5 rounded-full shadow-md flex items-center justify-center ${
-                                isDark ? 'bg-slate-900 left-[30px]' : 'bg-white left-[3px]'
-                            }`}
+                            style={{
+                                position: 'absolute',
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '9999px',
+                                backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                                boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
                         >
                             {isDark
-                                ? <Moon size={10} className="text-emerald-400" />
-                                : <Sun  size={10} className="text-amber-500" />
+                                ? <Moon size={10} style={{ color: '#34d399' }} />
+                                : <Sun  size={10} style={{ color: '#f59e0b' }} />
                             }
                         </motion.span>
                     </motion.button>
 
+                    
 
                     {/* Divider */}
                     <div className="w-px h-6 bg-slate-200/80 mx-1" />
@@ -84,7 +116,7 @@ const Header = ({ toggleSidebar }) => {
                     <motion.div
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className="flex items-center gap-2.5 pl-1 pr-3 py-1.5 rounded-xl hover:bg-slate-50 transition-all duration-200 cursor-pointer"
+                        className="flex items-center gap-2.5 pl-1 pr-3 py-1.5 rounded-xl hover:bg-slate-100 transition-all duration-200 cursor-pointer"
                     >
                         {user?.profileImage ? (
                             <img

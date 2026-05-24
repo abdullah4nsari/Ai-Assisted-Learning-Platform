@@ -183,7 +183,7 @@ const DocumentDetailPage = () => {
     const doc = document.data;
 
     return (
-        <div className="max-w-5xl mx-auto space-y-5 pb-8">
+        <div className="max-w-5xl mx-auto space-y-5 pb-8 overflow-x-hidden">
 
             {/* Header */}
             <motion.div
@@ -207,28 +207,30 @@ const DocumentDetailPage = () => {
             <motion.div
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.4 }}
-                className="relative flex gap-0.5 bg-slate-100/80 p-1 rounded-2xl w-fit overflow-x-auto"
+                className="w-full overflow-x-auto scrollbar-none"
             >
-                {TABS.map(({ name, icon: Icon, color }) => (
-                    <button
-                        key={name}
-                        onClick={() => setActiveTab(name)}
-                        className={`relative inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                            activeTab === name ? 'text-slate-800' : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                    >
-                        {activeTab === name && (
-                            <motion.div
-                                layoutId="activeTab"
-                                className="absolute inset-0 rounded-xl shadow-sm"
-                                style={{ backgroundColor: 'var(--tab-pill-bg, #ffffff)' }}
-                                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                            />
-                        )}
-                        <Icon size={14} className={`relative z-10 ${activeTab === name ? color : ''}`} />
-                        <span className="relative z-10">{name}</span>
-                    </button>
-                ))}
+                <div className="flex gap-1 bg-slate-100/80 p-1 rounded-2xl w-max min-w-full">
+                    {TABS.map(({ name, icon: Icon, color }) => (
+                        <button
+                            key={name}
+                            onClick={() => setActiveTab(name)}
+                            className={`relative flex items-center justify-center gap-1.5 flex-1 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-200 min-w-[56px] ${
+                                activeTab === name ? 'text-slate-800' : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            {activeTab === name && (
+                                <motion.div
+                                    layoutId="activeTab"
+                                    className="absolute inset-0 rounded-xl shadow-sm"
+                                    style={{ backgroundColor: 'var(--tab-pill-bg, #ffffff)' }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                                />
+                            )}
+                            <Icon size={14} className={`relative z-10 shrink-0 ${activeTab === name ? color : ''}`} />
+                            <span className="relative z-10 hidden xs:inline sm:inline">{name}</span>
+                        </button>
+                    ))}
+                </div>
             </motion.div>
 
             {/* Tab Panels */}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useTheme } from '../../context/ThemeContext.jsx';
 import { Link, useNavigate } from 'react-router-dom';
 import authService from '../../services/authService.js';
 import { BrainCircuit, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
@@ -17,28 +18,28 @@ const GoogleIcon = () => (
     </svg>
 );
 
-const InputField = ({ label, id, type = 'text', value, onChange, onFocus, onBlur, icon: Icon, focused, placeholder, rightSlot }) => (
+const InputField = ({ label, id, type = 'text', value, onChange, onFocus, onBlur, icon: Icon, focused, placeholder, rightSlot, isDark }) => (
     <div className="space-y-1.5">
-        <label htmlFor={id} className="block text-xs font-semibold text-slate-600 uppercase tracking-wider">
+        <label htmlFor={id} style={{ color: isDark ? '#94a3b8' : '#475569' }} className="block text-xs font-semibold uppercase tracking-wider">
             {label}
         </label>
         <div className="relative">
-            <div className={`absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors duration-200 ${focused ? 'text-emerald-500' : 'text-slate-400'}`}>
+            <div
+                className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors duration-200"
+                style={{ color: focused ? '#10b981' : isDark ? '#475569' : '#94a3b8' }}
+            >
                 <Icon size={16} strokeWidth={2} />
             </div>
             <input
-                id={id}
-                type={type}
-                value={value}
-                onChange={onChange}
-                onFocus={onFocus}
-                onBlur={onBlur}
-                placeholder={placeholder}
-                className={`w-full py-3 pl-10 ${rightSlot ? 'pr-10' : 'pr-4'} border-2 rounded-xl text-slate-900 placeholder-slate-400 text-sm font-medium transition-all duration-200 focus:outline-none bg-white/80 ${
-                    focused
-                        ? 'border-emerald-400 shadow-lg shadow-emerald-500/10 bg-white'
-                        : 'border-slate-200 hover:border-slate-300'
-                }`}
+                id={id} type={type} value={value} onChange={onChange}
+                onFocus={onFocus} onBlur={onBlur} placeholder={placeholder}
+                style={{
+                    backgroundColor: isDark ? (focused ? '#1e293b' : '#111827') : (focused ? '#ffffff' : 'rgba(255,255,255,0.8)'),
+                    borderColor: focused ? '#10b981' : isDark ? '#1e2d45' : '#e2e8f0',
+                    color: isDark ? '#f1f5f9' : '#0f172a',
+                    boxShadow: focused ? '0 0 0 3px rgba(16,185,129,0.12)' : 'none',
+                }}
+                className={`w-full py-3 pl-10 ${rightSlot ? 'pr-10' : 'pr-4'} border-2 rounded-xl text-sm font-medium transition-all duration-200 focus:outline-none`}
             />
             {rightSlot && (
                 <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center">{rightSlot}</div>
@@ -48,15 +49,16 @@ const InputField = ({ label, id, type = 'text', value, onChange, onFocus, onBlur
 );
 
 const LoginPage = () => {
-    const [email,         setEmail]         = useState('');
-    const [password,      setPassword]      = useState('');
-    const [showPassword,  setShowPassword]  = useState(false);
-    const [error,         setError]         = useState('');
-    const [loading,       setLoading]       = useState(false);
-    const [focusedField,  setFocusedField]  = useState(null);
+    const [email,        setEmail]        = useState('');
+    const [password,     setPassword]     = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [error,        setError]        = useState('');
+    const [loading,      setLoading]      = useState(false);
+    const [focusedField, setFocusedField] = useState(null);
 
-    const navigate = useNavigate();
-    const { login } = useAuth();
+    const navigate    = useNavigate();
+    const { login }   = useAuth();
+    const { isDark }  = useTheme();
 
     const handleGoogleSuccess = async (tokenResponse) => {
         try {
@@ -98,13 +100,16 @@ const LoginPage = () => {
         }
     };
 
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { staggerChildren: 0.07 } },
-    };
+    const cardBg    = isDark ? 'rgba(17,24,39,0.92)' : 'rgba(255,255,255,0.88)';
+    const cardBorder = isDark ? 'rgba(30,45,69,0.7)' : 'rgba(255,255,255,0.6)';
+    const textPrimary   = isDark ? '#f1f5f9' : '#0f172a';
+    const textSecondary = isDark ? '#94a3b8' : '#64748b';
+    const dividerColor  = isDark ? '#1e2d45' : '#e2e8f0';
+    const dividerBg     = isDark ? '#111827' : '#ffffff';
+
     const itemVariants = {
-        hidden:   { opacity: 0, y: 12 },
-        visible:  { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+        hidden:  { opacity: 0, y: 12 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
     };
 
     return (
@@ -116,22 +121,29 @@ const LoginPage = () => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 >
-                    <div className="auth-card bg-white/85 backdrop-blur-2xl border border-white/60 rounded-3xl shadow-2xl shadow-slate-900/10 p-8 md:p-10">
-
+                    <div
+                        style={{
+                            backgroundColor: cardBg,
+                            borderColor: cardBorder,
+                            backdropFilter: 'blur(24px)',
+                            WebkitBackdropFilter: 'blur(24px)',
+                        }}
+                        className="border rounded-3xl shadow-2xl shadow-slate-900/15 p-8 md:p-10"
+                    >
                         {/* Header */}
                         <motion.div
                             className="text-center mb-8"
-                            variants={containerVariants}
                             initial="hidden"
                             animate="visible"
+                            variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                         >
                             <motion.div variants={itemVariants} className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-xl shadow-emerald-500/30 mb-5">
                                 <BrainCircuit size={26} className="text-white" strokeWidth={2} />
                             </motion.div>
-                            <motion.h1 variants={itemVariants} className="text-2xl font-bold text-slate-900 tracking-tight">
+                            <motion.h1 variants={itemVariants} style={{ color: textPrimary }} className="text-2xl font-bold tracking-tight">
                                 Welcome back
                             </motion.h1>
-                            <motion.p variants={itemVariants} className="text-slate-500 text-sm mt-1.5">
+                            <motion.p variants={itemVariants} style={{ color: textSecondary }} className="text-sm mt-1.5">
                                 Sign in to continue your learning journey
                             </motion.p>
                         </motion.div>
@@ -141,11 +153,16 @@ const LoginPage = () => {
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2, duration: 0.4 }}
-                            whileHover={{ scale: 1.01 }}
+                            whileHover={{ scale: 1.01, backgroundColor: isDark ? '#1e2d45' : '#f8fafc' }}
                             whileTap={{ scale: 0.98 }}
                             type="button"
                             onClick={() => signInWithGoogle()}
-                            className="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50/80 transition-all duration-200 mb-5"
+                            style={{
+                                backgroundColor: isDark ? '#1a2235' : '#ffffff',
+                                borderColor: isDark ? '#1e2d45' : '#e2e8f0',
+                                color: isDark ? '#e2e8f0' : '#374151',
+                            }}
+                            className="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 rounded-xl text-sm font-semibold transition-all duration-200 mb-5"
                         >
                             <GoogleIcon />
                             Continue with Google
@@ -154,10 +171,12 @@ const LoginPage = () => {
                         {/* Divider */}
                         <div className="relative mb-5">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-slate-200" />
+                                <div style={{ borderColor: dividerColor }} className="w-full border-t" />
                             </div>
                             <div className="relative flex justify-center text-xs">
-                                <span className="px-3 bg-white text-slate-400 font-medium">or sign in with email</span>
+                                <span style={{ backgroundColor: dividerBg, color: textSecondary }} className="px-3 font-medium">
+                                    or sign in with email
+                                </span>
                             </div>
                         </div>
 
@@ -165,39 +184,34 @@ const LoginPage = () => {
                         <motion.form
                             onSubmit={handleSubmit}
                             className="space-y-4"
-                            variants={containerVariants}
                             initial="hidden"
                             animate="visible"
+                            variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                         >
                             <motion.div variants={itemVariants}>
                                 <InputField
-                                    label="Email"
-                                    id="email"
-                                    type="email"
-                                    value={email}
+                                    label="Email" id="email" type="email" value={email}
                                     onChange={e => setEmail(e.target.value)}
-                                    onFocus={() => setFocusedField('email')}
-                                    onBlur={() => setFocusedField(null)}
-                                    icon={Mail}
-                                    focused={focusedField === 'email'}
-                                    placeholder="you@example.com"
+                                    onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField(null)}
+                                    icon={Mail} focused={focusedField === 'email'}
+                                    placeholder="you@example.com" isDark={isDark}
                                 />
                             </motion.div>
 
                             <motion.div variants={itemVariants}>
                                 <InputField
-                                    label="Password"
-                                    id="password"
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={password}
+                                    label="Password" id="password" type={showPassword ? 'text' : 'password'} value={password}
                                     onChange={e => setPassword(e.target.value)}
-                                    onFocus={() => setFocusedField('password')}
-                                    onBlur={() => setFocusedField(null)}
-                                    icon={Lock}
-                                    focused={focusedField === 'password'}
-                                    placeholder="Enter your password"
+                                    onFocus={() => setFocusedField('password')} onBlur={() => setFocusedField(null)}
+                                    icon={Lock} focused={focusedField === 'password'}
+                                    placeholder="Enter your password" isDark={isDark}
                                     rightSlot={
-                                        <button type="button" onClick={() => setShowPassword(s => !s)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(s => !s)}
+                                            style={{ color: isDark ? '#475569' : '#94a3b8' }}
+                                            className="hover:text-emerald-500 transition-colors"
+                                        >
                                             {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                                         </button>
                                     }
@@ -208,12 +222,16 @@ const LoginPage = () => {
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.97 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    className="rounded-xl bg-red-50 border border-red-200 px-4 py-3"
+                                    style={{
+                                        backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+                                        borderColor: isDark ? 'rgba(239,68,68,0.3)' : '#fecaca',
+                                    }}
+                                    className="rounded-xl border px-4 py-3"
                                 >
-                                    <p className="text-xs text-red-600 font-medium">{error}</p>
+                                    <p className="text-xs text-red-500 font-medium">{error}</p>
                                     {error.includes('verify') && (
                                         <p className="text-xs mt-1.5">
-                                            <Link to="/resend-verification" className="font-semibold text-emerald-600 hover:text-emerald-700 underline">
+                                            <Link to="/resend-verification" className="font-semibold text-emerald-500 hover:text-emerald-400 underline">
                                                 Resend verification email
                                             </Link>
                                         </p>
@@ -236,21 +254,19 @@ const LoginPage = () => {
                                         <>Sign in <ArrowRight size={16} strokeWidth={2.5} /></>
                                     )}
                                 </span>
-                                {/* Shimmer */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/15 to-white/0 -translate-x-full hover:translate-x-full transition-transform duration-700" />
                             </motion.button>
                         </motion.form>
 
                         {/* Footer */}
-                        <p className="text-center text-sm text-slate-600 mt-6">
+                        <p style={{ color: textSecondary }} className="text-center text-sm mt-6">
                             Don't have an account?{' '}
-                            <Link to="/register" className="font-semibold text-emerald-600 hover:text-emerald-700 transition-colors duration-200">
+                            <Link to="/register" className="font-semibold text-emerald-500 hover:text-emerald-400 transition-colors duration-200">
                                 Sign up free
                             </Link>
                         </p>
                     </div>
 
-                    <p className="text-center text-xs text-slate-400 mt-5">
+                    <p style={{ color: isDark ? '#475569' : '#94a3b8' }} className="text-center text-xs mt-5">
                         By continuing, you agree to our Terms & Privacy Policy
                     </p>
                 </motion.div>

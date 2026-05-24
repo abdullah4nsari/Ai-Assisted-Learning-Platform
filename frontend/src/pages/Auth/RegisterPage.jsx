@@ -6,6 +6,7 @@ import { BrainCircuit, Mail, Lock, User, ArrowRight, Eye, EyeOff, CheckCircle } 
 import toast from 'react-hot-toast';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useTheme } from '../../context/ThemeContext.jsx';
 import AuthLayout from '../../components/layout/AuthLayout.jsx';
 
 const GoogleIcon = () => (
@@ -17,36 +18,49 @@ const GoogleIcon = () => (
     </svg>
 );
 
-const InputField = ({ label, id, type = 'text', value, onChange, onFocus, onBlur, icon: Icon, focused, placeholder, rightSlot }) => (
+const InputField = ({ label, id, type = 'text', value, onChange, onFocus, onBlur, icon: Icon, focused, placeholder, rightSlot, isDark }) => (
     <div className="space-y-1.5">
-        <label htmlFor={id} className="block text-xs font-semibold text-slate-600 uppercase tracking-wider">{label}</label>
+        <label htmlFor={id} style={{ color: isDark ? '#94a3b8' : '#475569' }} className="block text-xs font-semibold uppercase tracking-wider">
+            {label}
+        </label>
         <div className="relative">
-            <div className={`absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors duration-200 ${focused ? 'text-emerald-500' : 'text-slate-400'}`}>
+            <div
+                className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors duration-200"
+                style={{ color: focused ? '#10b981' : isDark ? '#475569' : '#94a3b8' }}
+            >
                 <Icon size={16} strokeWidth={2} />
             </div>
             <input
-                id={id} type={type} value={value} onChange={onChange} onFocus={onFocus} onBlur={onBlur} placeholder={placeholder}
-                className={`w-full py-3 pl-10 ${rightSlot ? 'pr-10' : 'pr-4'} border-2 rounded-xl text-slate-900 placeholder-slate-400 text-sm font-medium transition-all duration-200 focus:outline-none bg-white/80 ${
-                    focused ? 'border-emerald-400 shadow-lg shadow-emerald-500/10 bg-white' : 'border-slate-200 hover:border-slate-300'
-                }`}
+                id={id} type={type} value={value} onChange={onChange}
+                onFocus={onFocus} onBlur={onBlur} placeholder={placeholder}
+                style={{
+                    backgroundColor: isDark ? (focused ? '#1e293b' : '#111827') : (focused ? '#ffffff' : 'rgba(255,255,255,0.8)'),
+                    borderColor: focused ? '#10b981' : isDark ? '#1e2d45' : '#e2e8f0',
+                    color: isDark ? '#f1f5f9' : '#0f172a',
+                    boxShadow: focused ? '0 0 0 3px rgba(16,185,129,0.12)' : 'none',
+                }}
+                className={`w-full py-3 pl-10 ${rightSlot ? 'pr-10' : 'pr-4'} border-2 rounded-xl text-sm font-medium transition-all duration-200 focus:outline-none`}
             />
-            {rightSlot && <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center">{rightSlot}</div>}
+            {rightSlot && (
+                <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center">{rightSlot}</div>
+            )}
         </div>
     </div>
 );
 
 const RegisterPage = () => {
-    const [username,      setUsername]      = useState('');
-    const [email,         setEmail]         = useState('');
-    const [password,      setPassword]      = useState('');
-    const [showPassword,  setShowPassword]  = useState(false);
-    const [error,         setError]         = useState('');
-    const [loading,       setLoading]       = useState(false);
-    const [focusedField,  setFocusedField]  = useState(null);
-    const [registered,    setRegistered]    = useState(false);
+    const [username,     setUsername]     = useState('');
+    const [email,        setEmail]        = useState('');
+    const [password,     setPassword]     = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [error,        setError]        = useState('');
+    const [loading,      setLoading]      = useState(false);
+    const [focusedField, setFocusedField] = useState(null);
+    const [registered,   setRegistered]   = useState(false);
 
-    const navigate = useNavigate();
-    const { login } = useAuth();
+    const navigate   = useNavigate();
+    const { login }  = useAuth();
+    const { isDark } = useTheme();
 
     const signInWithGoogle = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
@@ -60,19 +74,18 @@ const RegisterPage = () => {
         onError: () => toast.error('Google sign-up was cancelled.'),
     });
 
-    const passwordStrength = () => {
+    const strengthScore = () => {
         if (!password) return 0;
-        let score = 0;
-        if (password.length >= 6)  score++;
-        if (password.length >= 10) score++;
-        if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
-        if (/\d/.test(password)) score++;
-        return score;
+        let s = 0;
+        if (password.length >= 6)  s++;
+        if (password.length >= 10) s++;
+        if (/[A-Z]/.test(password) && /[a-z]/.test(password)) s++;
+        if (/\d/.test(password)) s++;
+        return s;
     };
-
     const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-    const strengthColor = ['', 'bg-red-400', 'bg-amber-400', 'bg-blue-400', 'bg-emerald-400'];
-    const strength = passwordStrength();
+    const strengthColor = ['', '#ef4444', '#f59e0b', '#3b82f6', '#10b981'];
+    const strength = strengthScore();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -102,6 +115,13 @@ const RegisterPage = () => {
         }
     };
 
+    const cardBg        = isDark ? 'rgba(17,24,39,0.92)' : 'rgba(255,255,255,0.88)';
+    const cardBorder    = isDark ? 'rgba(30,45,69,0.7)'  : 'rgba(255,255,255,0.6)';
+    const textPrimary   = isDark ? '#f1f5f9'  : '#0f172a';
+    const textSecondary = isDark ? '#94a3b8'  : '#64748b';
+    const dividerColor  = isDark ? '#1e2d45'  : '#e2e8f0';
+    const dividerBg     = isDark ? '#111827'  : '#ffffff';
+
     const itemVariants = {
         hidden:  { opacity: 0, y: 12 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
@@ -116,8 +136,15 @@ const RegisterPage = () => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 >
-                    <div className="auth-card bg-white/85 backdrop-blur-2xl border border-white/60 rounded-3xl shadow-2xl shadow-slate-900/10 p-8 md:p-10">
-
+                    <div
+                        style={{
+                            backgroundColor: cardBg,
+                            borderColor: cardBorder,
+                            backdropFilter: 'blur(24px)',
+                            WebkitBackdropFilter: 'blur(24px)',
+                        }}
+                        className="border rounded-3xl shadow-2xl shadow-slate-900/15 p-8 md:p-10"
+                    >
                         {registered ? (
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
@@ -127,11 +154,13 @@ const RegisterPage = () => {
                                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto mb-5 shadow-xl shadow-emerald-500/30">
                                     <CheckCircle size={30} className="text-white" />
                                 </div>
-                                <h2 className="text-xl font-bold text-slate-900 mb-2">Check your inbox!</h2>
-                                <p className="text-sm text-slate-500 mb-1">We sent a verification link to</p>
-                                <p className="text-sm font-bold text-slate-800 mb-5">{email}</p>
-                                <p className="text-xs text-slate-400 mb-6">The link expires in 24 hours. Check your spam folder if needed.</p>
-                                <Link to="/resend-verification" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
+                                <h2 style={{ color: textPrimary }} className="text-xl font-bold mb-2">Check your inbox!</h2>
+                                <p style={{ color: textSecondary }} className="text-sm mb-1">We sent a verification link to</p>
+                                <p style={{ color: textPrimary }} className="text-sm font-bold mb-5">{email}</p>
+                                <p style={{ color: isDark ? '#475569' : '#94a3b8' }} className="text-xs mb-6">
+                                    The link expires in 24 hours. Check your spam folder if needed.
+                                </p>
+                                <Link to="/resend-verification" className="text-sm font-semibold text-emerald-500 hover:text-emerald-400 transition-colors">
                                     Didn't receive it? Resend
                                 </Link>
                             </motion.div>
@@ -147,70 +176,93 @@ const RegisterPage = () => {
                                     >
                                         <BrainCircuit size={26} className="text-white" strokeWidth={2} />
                                     </motion.div>
-                                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Create your account</h1>
-                                    <p className="text-slate-500 text-sm mt-1.5">Start your AI-powered learning experience</p>
+                                    <h1 style={{ color: textPrimary }} className="text-2xl font-bold tracking-tight">Create your account</h1>
+                                    <p style={{ color: textSecondary }} className="text-sm mt-1.5">Start your AI-powered learning experience</p>
                                 </div>
 
                                 {/* Google */}
                                 <motion.button
-                                    whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                                    whileHover={{ scale: 1.01, backgroundColor: isDark ? '#1e2d45' : '#f8fafc' }}
+                                    whileTap={{ scale: 0.98 }}
                                     type="button" onClick={() => signInWithGoogle()}
-                                    className="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50/80 transition-all duration-200 mb-5"
+                                    style={{
+                                        backgroundColor: isDark ? '#1a2235' : '#ffffff',
+                                        borderColor: isDark ? '#1e2d45' : '#e2e8f0',
+                                        color: isDark ? '#e2e8f0' : '#374151',
+                                    }}
+                                    className="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 rounded-xl text-sm font-semibold transition-all duration-200 mb-5"
                                 >
                                     <GoogleIcon /> Continue with Google
                                 </motion.button>
 
                                 <div className="relative mb-5">
-                                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200" /></div>
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div style={{ borderColor: dividerColor }} className="w-full border-t" />
+                                    </div>
                                     <div className="relative flex justify-center text-xs">
-                                        <span className="px-3 bg-white text-slate-400 font-medium">or sign up with email</span>
+                                        <span style={{ backgroundColor: dividerBg, color: textSecondary }} className="px-3 font-medium">
+                                            or sign up with email
+                                        </span>
                                     </div>
                                 </div>
 
                                 <motion.form
-                                    onSubmit={handleSubmit}
-                                    className="space-y-4"
-                                    initial="hidden"
-                                    animate="visible"
+                                    onSubmit={handleSubmit} className="space-y-4"
+                                    initial="hidden" animate="visible"
                                     variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                                 >
                                     <motion.div variants={itemVariants}>
-                                        <InputField label="Username" id="username" value={username} onChange={e => setUsername(e.target.value)}
+                                        <InputField label="Username" id="username" value={username}
+                                            onChange={e => setUsername(e.target.value)}
                                             onFocus={() => setFocusedField('username')} onBlur={() => setFocusedField(null)}
-                                            icon={User} focused={focusedField === 'username'} placeholder="johndoe" />
+                                            icon={User} focused={focusedField === 'username'} placeholder="johndoe" isDark={isDark} />
                                     </motion.div>
                                     <motion.div variants={itemVariants}>
-                                        <InputField label="Email" id="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
+                                        <InputField label="Email" id="email" type="email" value={email}
+                                            onChange={e => setEmail(e.target.value)}
                                             onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField(null)}
-                                            icon={Mail} focused={focusedField === 'email'} placeholder="you@example.com" />
+                                            icon={Mail} focused={focusedField === 'email'} placeholder="you@example.com" isDark={isDark} />
                                     </motion.div>
                                     <motion.div variants={itemVariants}>
                                         <InputField label="Password" id="password" type={showPassword ? 'text' : 'password'} value={password}
                                             onChange={e => setPassword(e.target.value)}
                                             onFocus={() => setFocusedField('password')} onBlur={() => setFocusedField(null)}
-                                            icon={Lock} focused={focusedField === 'password'} placeholder="Min 6 chars, upper, lower & number"
+                                            icon={Lock} focused={focusedField === 'password'}
+                                            placeholder="Min 6 chars, upper, lower & number" isDark={isDark}
                                             rightSlot={
-                                                <button type="button" onClick={() => setShowPassword(s => !s)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                                                <button type="button" onClick={() => setShowPassword(s => !s)}
+                                                    style={{ color: isDark ? '#475569' : '#94a3b8' }}
+                                                    className="hover:text-emerald-500 transition-colors">
                                                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                                                 </button>
                                             }
                                         />
+                                        {/* Password strength */}
                                         {password.length > 0 && (
                                             <div className="mt-2 space-y-1">
                                                 <div className="flex gap-1">
                                                     {[1,2,3,4].map(i => (
-                                                        <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${strength >= i ? strengthColor[strength] : 'bg-slate-200'}`} />
+                                                        <div key={i} className="h-1 flex-1 rounded-full transition-all duration-300"
+                                                            style={{ backgroundColor: strength >= i ? strengthColor[strength] : isDark ? '#1e2d45' : '#e2e8f0' }} />
                                                     ))}
                                                 </div>
-                                                <p className="text-xs text-slate-400">{strengthLabel[strength] || 'Too short'}</p>
+                                                <p style={{ color: strength > 0 ? strengthColor[strength] : textSecondary }} className="text-xs font-medium">
+                                                    {strengthLabel[strength] || 'Too short'}
+                                                </p>
                                             </div>
                                         )}
                                     </motion.div>
 
                                     {error && (
-                                        <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
-                                            className="rounded-xl bg-red-50 border border-red-200 px-4 py-3">
-                                            <p className="text-xs text-red-600 font-medium">{error}</p>
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
+                                            style={{
+                                                backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+                                                borderColor: isDark ? 'rgba(239,68,68,0.3)' : '#fecaca',
+                                            }}
+                                            className="rounded-xl border px-4 py-3"
+                                        >
+                                            <p className="text-xs text-red-500 font-medium">{error}</p>
                                         </motion.div>
                                     )}
 
@@ -230,15 +282,15 @@ const RegisterPage = () => {
                                     </motion.button>
                                 </motion.form>
 
-                                <p className="text-center text-sm text-slate-600 mt-6">
+                                <p style={{ color: textSecondary }} className="text-center text-sm mt-6">
                                     Already have an account?{' '}
-                                    <Link to="/login" className="font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">Sign in</Link>
+                                    <Link to="/login" className="font-semibold text-emerald-500 hover:text-emerald-400 transition-colors">Sign in</Link>
                                 </p>
                             </>
                         )}
                     </div>
 
-                    <p className="text-center text-xs text-slate-400 mt-5">
+                    <p style={{ color: isDark ? '#475569' : '#94a3b8' }} className="text-center text-xs mt-5">
                         By continuing, you agree to our Terms & Privacy Policy
                     </p>
                 </motion.div>
