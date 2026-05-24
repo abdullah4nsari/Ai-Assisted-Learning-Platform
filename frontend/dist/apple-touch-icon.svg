@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="180" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="180" height="180" rx="40" fill="url(#bg)"/>
+
+  <!-- Brain circuit icon scaled to 180x180 -->
+  <!-- Left brain lobe -->
+  <path d="M55 114 C38 114 28 104 28 88 C28 76 35 66 46 62 C46 61 46 60 46 59 C46 47 55 38 67 38 C71 38 75 39 78 41"
+        stroke="white" stroke-width="9" stroke-linecap="round" fill="none"/>
+  <!-- Right brain lobe -->
+  <path d="M102 41 C105 39 109 38 113 38 C125 38 134 47 134 59 C134 60 134 61 134 62 C145 66 152 76 152 88 C152 104 142 114 125 114"
+        stroke="white" stroke-width="9" stroke-linecap="round" fill="none"/>
+  <!-- Center divider -->
+  <line x1="90" y1="38" x2="90" y2="114" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  <!-- Circuit lines down -->
+  <line x1="55" y1="114" x2="55" y2="138" stroke="white" stroke-width="9" stroke-linecap="round"/>
+  <line x1="55" y1="138" x2="78" y2="138" stroke="white" stroke-width="9" stroke-linecap="round"/>
+  <line x1="125" y1="114" x2="125" y2="138" stroke="white" stroke-width="9" stroke-linecap="round"/>
+  <line x1="125" y1="138" x2="102" y2="138" stroke="white" stroke-width="9" stroke-linecap="round"/>
+  <line x1="90" y1="114" x2="90" y2="138" stroke="white" stroke-width="9" stroke-linecap="round"/>
+  <!-- Circuit dots -->
+  <circle cx="78" cy="138" r="7" fill="white"/>
+  <circle cx="102" cy="138" r="7" fill="white"/>
+  <circle cx="90" cy="68" r="7" fill="white"/>
+</svg>
