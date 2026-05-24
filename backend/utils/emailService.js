@@ -78,8 +78,7 @@ export const sendVerificationEmail = async (toEmail, username, token) => {
             'content-type': 'application/json',
         },
         body: JSON.stringify({
-            sender:      { name: 'AI Learning Assistant', email: 'noreply@brevosend.com' },
-            replyTo:     { email: fromEmail },
+            sender:      { name: 'AI Learning Assistant', email: fromEmail },
             to:          [{ email: toEmail }],
             subject:     '✅ Verify your email — AI Learning Assistant',
             htmlContent: verificationEmailTemplate(username, verificationUrl),
@@ -89,6 +88,9 @@ export const sendVerificationEmail = async (toEmail, username, token) => {
     const data = await response.json();
 
     if (!response.ok) {
+        console.error('[BREVO] API error response:', JSON.stringify(data));
         throw new Error(data.message || `Brevo API error: ${response.status}`);
     }
+
+    console.log('[BREVO] Email sent successfully to:', toEmail, '| messageId:', data.messageId);
 };
